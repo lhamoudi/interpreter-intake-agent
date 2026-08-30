@@ -46,15 +46,17 @@ export interface IntakeRecord {
 }
 
 /**
- * Slots that MUST be present before we will secure an interpreter.
- * `industry` and `notes` are intentionally optional.
+ * Slots that MUST be present before we will secure an interpreter, regardless of
+ * how the caller wants to be served. `industry` and `notes` are optional;
+ * `callbackNumber` is conditionally required (see checkComplete) — a "now" caller
+ * is connected live, so no callback number is needed; only a "scheduled" caller
+ * needs one.
  */
 export const REQUIRED_SLOTS = [
   'sourceLanguage',
   'targetLanguage',
   'genderPreference',
   'urgency',
-  'callbackNumber',
 ] as const satisfies readonly (keyof IntakeRecord)[];
 
 export interface Completeness {
@@ -62,11 +64,20 @@ export interface Completeness {
   missing: (keyof IntakeRecord)[];
 }
 
+function isBlank(v: unknown): boolean {
+  return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+}
+
 /** Deterministic completeness check. This — not the model — gates handoff. */
 export function checkComplete(record: IntakeRecord): Completeness {
-  const missing = REQUIRED_SLOTS.filter((slot) => {
+  const required: (keyof IntakeRecord)[] = [...REQUIRED_SLOTS];
+  // A scheduled (call-back-later) request needs a callback number; an urgent
+  // "now" request is connected live, so it doesn't.
+  if (record.urgency === 'scheduled') required.push('callbackNumber');
+
+  const missing = required.filter((slot) => {
     const v = record[slot];
-    return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+    return isBlank(v);
   });
   return { complete: missing.length === 0, missing };
 }

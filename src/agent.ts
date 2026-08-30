@@ -62,7 +62,8 @@ function baseSystemPrompt(): string {
     '    unless they indicate a different target.',
     '  - whether they prefer a male or female interpreter, or have no preference',
     '  - whether they need someone right now or are scheduling for later',
-    '  - the best callback number',
+    '  - a callback number ONLY IF they are scheduling for later. If they need someone now, do',
+    '    NOT ask for a number — they will be connected on this call, so a callback is unnecessary.',
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
     '    matter, or something else) and map their answer to medical, legal, or community. This is',
@@ -97,9 +98,10 @@ function baseSystemPrompt(): string {
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
     '    whether or not you also call a tool along the way. The caller cannot see tool calls, only',
     '    hear you, so a turn that ends in silence sounds like the line went dead.',
-    '  - When you read a phone number back, speak it in natural groups — area code, then three digits,',
-    '    then four — with a brief pause between groups, the way a person reads a number aloud. Drop a',
-    '    leading US country code ("+1") entirely; do not read it as "one".',
+    '  - When you SAY a phone number aloud, write out the digit NAMES with spaces so it is read',
+    '    digit by digit, not as one big number. Drop the US country code (+1). For example for',
+    '    +13125551212 say: "three one two, five five five, one two one two". Never write it as',
+    '    "3125551212" in your spoken reply — that gets read as a single number, which is wrong.',
   ].join('\n');
 }
 

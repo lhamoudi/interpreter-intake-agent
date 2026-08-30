@@ -12,30 +12,40 @@ describe('checkComplete', () => {
     expect(checkComplete({}).complete).toBe(false);
   });
 
-  it('lists every missing required slot', () => {
+  it('lists every missing required slot (callbackNumber excluded until urgency is known)', () => {
     const { missing } = checkComplete({ sourceLanguage: 'Spanish' });
-    expect(missing).toEqual(['targetLanguage', 'genderPreference', 'urgency', 'callbackNumber']);
+    expect(missing).toEqual(['targetLanguage', 'genderPreference', 'urgency']);
   });
 
-  it('is complete once every required slot is set, leaving optional ones out of it', () => {
+  it('a "now" caller is complete WITHOUT a callback number (connected live)', () => {
     const record: IntakeRecord = {
       sourceLanguage: 'Spanish',
       targetLanguage: 'English',
       genderPreference: 'no_preference',
       urgency: 'now',
-      callbackNumber: '+15551234567',
     };
     const result = checkComplete(record);
     expect(result.complete).toBe(true);
     expect(result.missing).toEqual([]);
   });
 
-  it('treats an empty string the same as a missing value', () => {
+  it('a "scheduled" caller still needs a callback number', () => {
+    const base: IntakeRecord = {
+      sourceLanguage: 'Spanish',
+      targetLanguage: 'English',
+      genderPreference: 'no_preference',
+      urgency: 'scheduled',
+    };
+    expect(checkComplete(base).missing).toEqual(['callbackNumber']);
+    expect(checkComplete({ ...base, callbackNumber: '+15551234567' }).complete).toBe(true);
+  });
+
+  it('treats an empty-string callback number as missing for a scheduled caller', () => {
     const { complete } = checkComplete({
       sourceLanguage: 'Spanish',
       targetLanguage: 'English',
       genderPreference: 'no_preference',
-      urgency: 'now',
+      urgency: 'scheduled',
       callbackNumber: '   ',
     });
     expect(complete).toBe(false);

@@ -45,6 +45,21 @@ export function resolveLanguage(name: string | undefined): LangCodes | undefined
   return LANGUAGES[name.trim().toLowerCase()];
 }
 
+/**
+ * Returning-caller "welcome back" greeting in the caller's own language, spoken
+ * by the preset TTS voice before the first agent turn. English text in a French
+ * voice was the bug: the greeting must be in the same language as the voice.
+ */
+const RETURNING_GREETINGS: Record<string, string> = {
+  spanish: 'Bienvenido de nuevo. Puedo conectarle con un intérprete de español otra vez. ¿Continuamos?',
+  french: 'Bon retour. Je peux à nouveau vous mettre en relation avec un interprète français. On continue?',
+};
+
+export function returningGreeting(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  return RETURNING_GREETINGS[name.trim().toLowerCase()];
+}
+
 export function isSupported(name: string | undefined): boolean {
   return resolveLanguage(name) !== undefined;
 }

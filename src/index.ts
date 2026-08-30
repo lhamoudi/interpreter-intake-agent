@@ -9,7 +9,7 @@ import 'dotenv/config';
 import { TAC, TACConfig, VoiceChannel, TACServer } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
-import { resolveLanguage, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
+import { resolveLanguage, returningGreeting, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
 
 const NEW_CALLER_GREETING =
   "Thanks for calling. I can connect you with an interpreter. What language do you speak? " +
@@ -59,11 +59,14 @@ async function main() {
 
     const lang = memory.sourceLanguage;
     const codes = resolveLanguage(lang);
-    if (lang && codes && codes.tts !== 'en-US') {
-      // Returning caller with a known non-English language: greet and listen in it.
+    const localizedGreeting = returningGreeting(lang);
+    if (lang && codes && codes.tts !== 'en-US' && localizedGreeting) {
+      // Returning caller with a known non-English language: greet, speak, and
+      // listen in it. The greeting text must be in that language too — an English
+      // greeting in the preset French voice was the bug.
       return {
         ...base,
-        welcomeGreeting: `Welcome back. I can set you up with a ${lang} interpreter again — shall we go ahead?`,
+        welcomeGreeting: localizedGreeting,
         ttsLanguage: codes.tts,
         transcriptionLanguage: codes.transcription,
       };

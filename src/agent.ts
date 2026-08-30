@@ -21,6 +21,7 @@ import {
   summarize,
 } from './intake.js';
 import { deflectToVideoRoom } from './deflection.js';
+import { buildHandoffData, notifyDutyInterpreter } from './handoff.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -167,6 +168,13 @@ export async function initCall(conversationId: string, callerAddress: string | u
 interface Deps {
   voice: VoiceChannel;
   conversationId: ConversationId;
+  /**
+   * The live TAC session, when present (real calls). Handoff sets
+   * `session.pendingHandoffData` on it so the voice channel emits the
+   * ConversationRelay `end` message with the handoff payload. Optional so
+   * smoke tests without a real session still run.
+   */
+  session?: { pendingHandoffData?: { type?: 'end'; handoffData: string } };
 }
 
 /** Run one caller turn. Returns the text to speak back. */
@@ -301,7 +309,8 @@ async function dispatchTool(
         }
         const result = await deflectToVideoRoom(conversationId, state.intake.email);
         if (result.ok) {
-          await finalizeComplete(state, deps); // persist + remember, tier recorded
+          // Video tier: caller joins by link, so no human callback notification.
+          await finalizeComplete(state, deps, false); // persist + remember, tier recorded
           log.info({ conversationId, tool: 'choose_service_tier', tier, videoOk: true }, 'tool call');
           return JSON.stringify({
             ok: true,
@@ -377,14 +386,26 @@ async function dispatchTool(
   }
 }
 
-/** Persist a completed intake and remember the caller. Handoff SMS is Phase 5. */
-async function finalizeComplete(state: CallState, deps: Deps): Promise<void> {
+/**
+ * Persist a completed intake and remember the caller. For the human-callback
+ * path (`notifyHuman`), also (a) set the TAC voice-handoff payload on the live
+ * session so ConversationRelay emits the `end` message with `handoffData`, and
+ * (b) email the duty interpreter the lead so they can call the caller back.
+ * Both are best-effort and never block completion — the request is persisted
+ * regardless.
+ */
+async function finalizeComplete(
+  state: CallState,
+  deps: Deps,
+  notifyHuman = true,
+): Promise<void> {
   if (state.handoffDone) return;
   state.handoffDone = true;
+  const conversationId = deps.conversationId as string;
   try {
     await saveRequest({
       id: randomUUID(),
-      conversationId: deps.conversationId as string,
+      conversationId,
       callerHash: state.callerHash,
       status: 'complete',
       record: state.intake,
@@ -392,7 +413,27 @@ async function finalizeComplete(state: CallState, deps: Deps): Promise<void> {
     await rememberCaller(state.callerHash, state.intake);
     state.persisted = true;
   } catch (err) {
-    log.error({ conversationId: deps.conversationId, err }, 'failed to persist completed intake');
+    log.error({ conversationId, err }, 'failed to persist completed intake');
+  }
+
+  if (notifyHuman) {
+    // Primary handoff: set the TAC voice-handoff payload on the live session.
+    // The voice channel emits the ConversationRelay `end` with it after the
+    // final reply; if a Studio Flow is configured (TWILIO_STUDIO_HANDOFF_FLOW_SID)
+    // ConversationRelay triggers it and it routes the call into Flex via
+    // TaskRouter, carrying this lead context.
+    if (deps.session) {
+      deps.session.pendingHandoffData = {
+        type: 'end',
+        handoffData: buildHandoffData(conversationId, state.intake),
+      };
+      log.info({ conversationId }, 'handoff payload set on session (voice end → Studio/Flex)');
+    }
+    // Fallback only: if no Studio Flow is configured, email the duty interpreter
+    // so a lead is never dropped. With Flex wired, this stays dormant.
+    if (!process.env.TWILIO_STUDIO_HANDOFF_FLOW_SID) {
+      await notifyDutyInterpreter(conversationId, state.intake);
+    }
   }
 }
 

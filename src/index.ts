@@ -11,7 +11,19 @@ import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests } from './memory.js';
 
 async function main() {
-  const tac = await TAC.create({ config: TACConfig.fromEnv() });
+  const config = TACConfig.fromEnv();
+  const tac = await TAC.create({ config });
+
+  // Human handoff: when TWILIO_STUDIO_HANDOFF_FLOW_SID is set, TACConfig picks it
+  // up and TAC automatically wires the ConversationRelay `<Connect action>` URL
+  // to that Studio Flow (precedence layer 4 in resolveActionUrl). We set
+  // session.pendingHandoffData on the human-callback tier (see agent.ts); when
+  // ConversationRelay ends the session it triggers the Flow carrying handoffData,
+  // and the Flow routes the call into Flex via TaskRouter. Nothing to wire here.
+  if (config.studioHandoffFlowSid) {
+    console.log('handoff: Studio Flow configured, TAC will wire the voice action URL',
+      config.studioHandoffFlowSid);
+  }
 
   const voiceChannel = new VoiceChannel(tac, {
     defaultTwimlOptions: {
@@ -24,7 +36,7 @@ async function main() {
   tac.onMessageReady(async ({ conversationId, message, session }) => {
     // Seed caller memory from the real PSTN address the first time we see this call.
     await initCall(conversationId as string, session.authorInfo?.address);
-    return runAgent(message, { voice: voiceChannel, conversationId });
+    return runAgent(message, { voice: voiceChannel, conversationId, session });
   });
 
   tac.onConversationEnded(async ({ session }) => {

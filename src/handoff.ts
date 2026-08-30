@@ -36,10 +36,13 @@ export function buildTaskAttributes(
 
   return {
     name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
-    customerName: `${languagePair} interpreter request`,
-    // Top-level keys the stock Flex UI renders, so the interpreter sees the number
-    // and callback time without a plugin.
-    customerAddress: record.callbackNumber ?? undefined,
+    // Flex's "Customer name / Phone number" panel row reads attributes.customers.
+    // Put the callback number here so the interpreter sees who/where to call.
+    customers: {
+      phone: record.callbackNumber ?? undefined,
+      name: scheduled ? `Callback: ${record.scheduledTimeText ?? 'scheduled'}` : `${languagePair} request`,
+    },
+    // Also expose these directly for a plugin / raw view.
     callbackNumber: record.callbackNumber ?? undefined,
     callbackTime: record.scheduledTimeText ?? undefined,
     callbackTimeISO: record.scheduledTimeISO ?? undefined,

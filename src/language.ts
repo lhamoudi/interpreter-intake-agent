@@ -42,18 +42,6 @@ export function resolveLanguage(name: string | undefined): LangCodes | undefined
   return LANGUAGES[name.trim().toLowerCase()];
 }
 
-/**
- * The distinct TTS/transcription locales we support, as ConversationRelay
- * `<Language>` child declarations. These MUST be declared in the initial TwiML
- * (`defaultTwimlOptions.languages`) or a mid-call `set_language` switch to a
- * non-default locale has no configured voice and the TTS silently stays English
- * — the exact bug seen on a live French call. `voice` is omitted so CR uses each
- * locale's default voice; a specific voice can be pinned per language later.
- */
-export const SUPPORTED_LANGUAGE_DECLARATIONS: { code: string }[] = Array.from(
-  new Set(Object.values(LANGUAGES).map((c) => c.tts)),
-).map((code) => ({ code }));
-
 export function isSupported(name: string | undefined): boolean {
   return resolveLanguage(name) !== undefined;
 }

@@ -15,26 +15,29 @@
 import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
 
 /**
- * Map a spoken language name (as the model reports it) to the BCP-47 codes
- * ConversationRelay expects. Kept deliberately small — the common OPI languages.
- * `transcription` is the STT locale; `tts` is the speech-synthesis locale.
+ * Map a spoken language name (as the model reports it) to the codes and voice
+ * ConversationRelay needs. Scoped to the languages we have VERIFIED live —
+ * English (the parent default) plus French and Spanish — each with an explicit
+ * Google TTS voice, because mid-call TTS switching only works for a locale that
+ * is declared as a `<Language>` child WITH a real voice (bare `<Language code>`
+ * children broke the call entirely against CR's ElevenLabs default). Adding more
+ * languages means declaring each here with a validated Google voice and testing
+ * it on a real call — don't add unverified ones.
+ *
+ * `transcription` = STT locale, `tts` = TTS locale, `ttsProvider`/`voice` pin the
+ * exact synthesis voice.
  */
 interface LangCodes {
   transcription: string;
   tts: string;
+  ttsProvider: string;
+  voice: string;
 }
 
 const LANGUAGES: Record<string, LangCodes> = {
-  english: { transcription: 'en-US', tts: 'en-US' },
-  spanish: { transcription: 'es-US', tts: 'es-US' },
-  french: { transcription: 'fr-FR', tts: 'fr-FR' },
-  mandarin: { transcription: 'zh-CN', tts: 'zh-CN' },
-  chinese: { transcription: 'zh-CN', tts: 'zh-CN' },
-  arabic: { transcription: 'ar-AE', tts: 'ar-XA' },
-  russian: { transcription: 'ru-RU', tts: 'ru-RU' },
-  portuguese: { transcription: 'pt-BR', tts: 'pt-BR' },
-  vietnamese: { transcription: 'vi-VN', tts: 'vi-VN' },
-  haitian: { transcription: 'fr-FR', tts: 'fr-FR' }, // Haitian Creole: nearest supported
+  english: { transcription: 'en-US', tts: 'en-US', ttsProvider: 'Google', voice: 'en-US-Neural2-C' },
+  spanish: { transcription: 'es-US', tts: 'es-US', ttsProvider: 'Google', voice: 'es-US-Neural2-A' },
+  french: { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: 'Google', voice: 'fr-FR-Neural2-F' },
 };
 
 export function resolveLanguage(name: string | undefined): LangCodes | undefined {
@@ -45,6 +48,19 @@ export function resolveLanguage(name: string | undefined): LangCodes | undefined
 export function isSupported(name: string | undefined): boolean {
   return resolveLanguage(name) !== undefined;
 }
+
+/**
+ * The non-English locales we support, as ConversationRelay `<Language>` child
+ * declarations for the initial TwiML (`defaultTwimlOptions.languages`). Each
+ * carries an explicit `ttsProvider` + `voice` — a bare `<Language code=...>`
+ * with no voice broke the call entirely against CR's ElevenLabs default (CR
+ * rejected the TwiML, no WebSocket opened, caller got an error tone). English is
+ * the parent default and is NOT re-declared here. A mid-call switch to one of
+ * these locales then has a real voice to use.
+ */
+export const SUPPORTED_LANGUAGE_DECLARATIONS = Object.values(LANGUAGES)
+  .filter((c) => c.tts !== 'en-US')
+  .map((c) => ({ code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice }));
 
 /**
  * Switch the live call's STT/TTS language by sending a ConversationRelay

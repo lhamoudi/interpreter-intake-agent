@@ -9,7 +9,7 @@ import 'dotenv/config';
 import { TAC, TACConfig, VoiceChannel, TACServer } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
-import { resolveLanguage } from './language.js';
+import { resolveLanguage, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
 
 const NEW_CALLER_GREETING =
   "Thanks for calling. I can connect you with an interpreter. What language do you speak? " +
@@ -31,7 +31,14 @@ async function main() {
   }
 
   const voiceChannel = new VoiceChannel(tac, {
-    defaultTwimlOptions: { welcomeGreeting: NEW_CALLER_GREETING },
+    defaultTwimlOptions: {
+      welcomeGreeting: NEW_CALLER_GREETING,
+      // Declare French + Spanish as <Language> children with explicit Google
+      // voices so a mid-call set_language switch has a real voice to use. Each
+      // MUST carry ttsProvider + voice; bare <Language code> children broke the
+      // call against CR's ElevenLabs default. English is the parent default.
+      languages: SUPPORTED_LANGUAGE_DECLARATIONS,
+    },
   });
 
   // Personalize BEFORE the greeting is spoken. This runs at answer time with the
@@ -40,9 +47,14 @@ async function main() {
   // preset to that language, instead of hearing the generic English prompt and
   // only being recognized a turn later (which read as "off").
   voiceChannel.onInboundCallTwiml(async (req) => {
+    // The customizer is the highest-precedence TwiML layer and `languages`
+    // replaces wholesale, so re-declare the <Language> children on every return
+    // or they get dropped and mid-call switching breaks again.
+    const base = { languages: SUPPORTED_LANGUAGE_DECLARATIONS };
+
     const memory = await lookupCallerByAddress(req.from);
     if (!memory || memory.callCount === 0) {
-      return { welcomeGreeting: NEW_CALLER_GREETING };
+      return { ...base, welcomeGreeting: NEW_CALLER_GREETING };
     }
 
     const lang = memory.sourceLanguage;
@@ -50,6 +62,7 @@ async function main() {
     if (lang && codes && codes.tts !== 'en-US') {
       // Returning caller with a known non-English language: greet and listen in it.
       return {
+        ...base,
         welcomeGreeting: `Welcome back. I can set you up with a ${lang} interpreter again — shall we go ahead?`,
         ttsLanguage: codes.tts,
         transcriptionLanguage: codes.transcription,
@@ -57,6 +70,7 @@ async function main() {
     }
     // Returning caller we know, but English (or unmapped) — warm greeting, default language.
     return {
+      ...base,
       welcomeGreeting: lang
         ? `Welcome back. I can help you with a ${lang} interpreter again — what do you need today?`
         : "Welcome back. I can connect you with an interpreter again — which language do you speak?",

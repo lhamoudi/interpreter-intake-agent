@@ -226,6 +226,10 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   if (!calls.has(convId)) await initCall(convId, undefined);
   const state = calls.get(convId)!;
 
+  // Log the transcribed utterance so we can see what STT actually heard (needed
+  // to debug language switching — the caller's words never reach the tool logs).
+  log.info({ conversationId: convId, activeLanguage: state.activeLanguage, utterance: userMessage }, 'caller turn');
+
   state.history.push({ role: 'user', content: userMessage });
 
   const system =

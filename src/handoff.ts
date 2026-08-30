@@ -37,6 +37,12 @@ export function buildTaskAttributes(
   return {
     name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
     customerName: `${languagePair} interpreter request`,
+    // Top-level keys the stock Flex UI renders, so the interpreter sees the number
+    // and callback time without a plugin.
+    customerAddress: record.callbackNumber ?? undefined,
+    callbackNumber: record.callbackNumber ?? undefined,
+    callbackTime: record.scheduledTimeText ?? undefined,
+    callbackTimeISO: record.scheduledTimeISO ?? undefined,
     type: scheduled ? 'interpreter_callback' : 'interpreter_intake',
     conversationId,
     serviceTier: record.serviceTier ?? 'human',

@@ -41,7 +41,7 @@ async function main() {
     if (memory && memory.callCount > 0) {
       return {
         welcomeGreeting:
-          'Welcome back. I can help you set up an interpreter again — what do you need today?',
+          'Welcome back! I can help you set up an interpreter again. What do you need today?',
       };
     }
     return { welcomeGreeting: NEW_CALLER_GREETING };

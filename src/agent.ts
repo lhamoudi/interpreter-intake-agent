@@ -47,15 +47,26 @@ interface CallState {
 
 const calls = new Map<string, CallState>();
 
+/** Current time in the assumed caller timezone, for resolving relative times. */
+function nowInTz(): string {
+  const tz = process.env.DEFAULT_CALLER_TZ ?? 'America/New_York';
+  try {
+    return `${new Date().toLocaleString('en-US', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' })} (${tz})`;
+  } catch {
+    return `${new Date().toISOString()} (UTC)`;
+  }
+}
+
 function baseSystemPrompt(): string {
   return [
     'You are the intake voice agent for an over-the-phone interpretation service.',
     'A caller needs a human interpreter. Your job is to warmly and efficiently collect',
     'the details needed to secure the right interpreter, then hand off to a human.',
     '',
-    `The current date and time is ${new Date().toISOString()} (UTC). Use it to resolve any ` +
-    'relative callback time the caller gives ("in 5 minutes", "tomorrow at 3pm") into an ISO ' +
-    'timestamp. US callers usually mean their local time; if the timezone is unclear, ask briefly.',
+    `The current time is ${nowInTz()}. Use it to resolve a relative callback time ` +
+    '("in 5 minutes", "tomorrow at 3pm") into scheduledTimeISO with the correct timezone offset. ' +
+    'When you CONFIRM the time back to the caller, repeat it in THEIR words / their local time ' +
+    '(e.g. "in about 20 minutes", "tomorrow at 3 p.m.") — never read a UTC time or an ISO string aloud.',
     '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
     '  - which language the caller needs an interpreter for (their language), interpreted INTO',

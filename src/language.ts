@@ -92,15 +92,19 @@ export function isEnglish(name: string | undefined): boolean {
  * carries an explicit `ttsProvider` + `voice` — a bare `<Language code=...>`
  * with no voice broke the call entirely against CR's ElevenLabs default (CR
  * rejected the TwiML, no WebSocket opened, caller got an error tone). English is
- * the parent default and is NOT re-declared here. A mid-call switch to one of
- * these locales then has a real voice to use.
+ * A mid-call switch to any declared locale then has a real voice to use.
+ *
+ * English IS declared here (with an explicit Google voice) so switching BACK to
+ * English mid-call finds a voice — otherwise the TTS stays on the previous
+ * language's voice and English comes out in a French/Spanish accent.
  */
 export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
   // Dedup by tts code — LANGUAGES has multiple name aliases per locale.
   new Map(
-    Object.values(LANGUAGES)
-      .filter((c) => c.tts !== 'en-US')
-      .map((c) => [c.tts, { code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice }]),
+    Object.values(LANGUAGES).map((c) => [
+      c.tts,
+      { code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice },
+    ]),
   ).values(),
 );
 

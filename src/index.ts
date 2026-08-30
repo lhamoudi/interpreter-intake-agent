@@ -8,7 +8,11 @@
 import 'dotenv/config';
 import { TAC, TACConfig, VoiceChannel, TACServer } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
-import { listRequests } from './memory.js';
+import { listRequests, lookupCallerByAddress } from './memory.js';
+import { resolveLanguage } from './language.js';
+
+const NEW_CALLER_GREETING =
+  "Thanks for calling. I can help set you up with an interpreter — what language do you need?";
 
 async function main() {
   const config = TACConfig.fromEnv();
@@ -26,11 +30,38 @@ async function main() {
   }
 
   const voiceChannel = new VoiceChannel(tac, {
-    defaultTwimlOptions: {
-      welcomeGreeting:
-        "Thanks for calling. I can help set you up with an interpreter — what language do you need?",
-    },
+    defaultTwimlOptions: { welcomeGreeting: NEW_CALLER_GREETING },
   });
+
+  // Personalize BEFORE the greeting is spoken. This runs at answer time with the
+  // caller's number in hand, so we look up their profile here — a returning
+  // caller is greeted by name-of-language in their own language, and STT/TTS is
+  // preset to that language, instead of hearing the generic English prompt and
+  // only being recognized a turn later (which read as "off").
+  voiceChannel.onInboundCallTwiml(async (req) => {
+    const memory = await lookupCallerByAddress(req.from);
+    if (!memory || memory.callCount === 0) {
+      return { welcomeGreeting: NEW_CALLER_GREETING };
+    }
+
+    const lang = memory.sourceLanguage;
+    const codes = resolveLanguage(lang);
+    if (lang && codes && codes.tts !== 'en-US') {
+      // Returning caller with a known non-English language: greet and listen in it.
+      return {
+        welcomeGreeting: `Welcome back. I can set you up with a ${lang} interpreter again — shall we go ahead?`,
+        ttsLanguage: codes.tts,
+        transcriptionLanguage: codes.transcription,
+      };
+    }
+    // Returning caller we know, but English (or unmapped) — warm greeting, default language.
+    return {
+      welcomeGreeting: lang
+        ? `Welcome back. I can help you with a ${lang} interpreter again — what do you need today?`
+        : "Welcome back. I can help you with an interpreter again — what language do you need?",
+    };
+  });
+
   tac.registerChannel(voiceChannel);
 
   tac.onMessageReady(async ({ conversationId, message, session }) => {

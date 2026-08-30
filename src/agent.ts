@@ -129,8 +129,9 @@ function memoryPreamble(memory: CallerMemory | null): string {
   return (
     '\n\nThis is a returning caller. From previous calls: ' +
     known.join('; ') +
-    '. Greet them as a returning caller, confirm rather than re-ask what you already know, ' +
-    'and only fill the gaps.'
+    '. They have ALREADY heard a "welcome back" greeting before you — do not greet them ' +
+    'again or say "welcome back" a second time; just continue naturally. Confirm rather than ' +
+    're-ask what you already know, and only fill the gaps.'
   );
 }
 

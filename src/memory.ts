@@ -40,6 +40,21 @@ export interface CallerMemory {
   callCount: number;
 }
 
+/**
+ * Look up a caller by their raw address (E.164), hashing internally. Used before
+ * the greeting is spoken (TwiML customizer) to personalize it and preset the
+ * language. Best-effort: returns null on first contact or any lookup failure.
+ */
+export async function lookupCallerByAddress(
+  address: string | undefined,
+): Promise<CallerMemory | null> {
+  try {
+    return await getCallerMemory(hashCaller(address));
+  } catch {
+    return null;
+  }
+}
+
 /** Look up what we know about a returning caller. Null on first contact. */
 export async function getCallerMemory(callerHash: string | null): Promise<CallerMemory | null> {
   if (!callerHash) return null;

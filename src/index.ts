@@ -12,7 +12,8 @@ import { listRequests, lookupCallerByAddress } from './memory.js';
 import { resolveLanguage } from './language.js';
 
 const NEW_CALLER_GREETING =
-  "Thanks for calling. I can help set you up with an interpreter — what language do you need?";
+  "Thanks for calling. I can connect you with an interpreter. What language do you speak? " +
+  "We'll interpret to English unless you need another language.";
 
 async function main() {
   const config = TACConfig.fromEnv();
@@ -58,7 +59,7 @@ async function main() {
     return {
       welcomeGreeting: lang
         ? `Welcome back. I can help you with a ${lang} interpreter again — what do you need today?`
-        : "Welcome back. I can help you with an interpreter again — what language do you need?",
+        : "Welcome back. I can connect you with an interpreter again — which language do you speak?",
     };
   });
 

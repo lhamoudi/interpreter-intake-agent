@@ -42,6 +42,7 @@ interface CallState {
   callerAddress: string | null;
   memory: CallerMemory | null;
   handoffDone: boolean;
+  declined: boolean;
   persisted: boolean;
 }
 
@@ -86,6 +87,19 @@ function baseSystemPrompt(): string {
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
     '    whether or not you also call a tool along the way. The caller cannot see tool calls, only',
     '    hear you, so a turn that ends in silence sounds like the line went dead.',
+    '',
+    'Edge cases:',
+    '  - CONTRADICTION: if the caller changes a detail they gave earlier (e.g. first "Spanish",',
+    '    later "actually Portuguese"), do not silently overwrite. Briefly note the change and',
+    '    confirm the new value ("Got it — Portuguese, not Spanish?"), then record_intake with it.',
+    '  - CAN\'T ANSWER: you only arrange interpreters. If asked something outside that (legal advice,',
+    '    medical advice, pricing you don\'t know, unrelated questions), say plainly you can\'t help',
+    '    with that but you can connect them with an interpreter, and steer back. Never guess or',
+    '    invent facts.',
+    '  - NOT A QUALIFIED LEAD: if the caller clearly does not want an interpreter — wrong number, a',
+    '    sales/spam call, just testing, or being abusive — do not push through intake. Politely say',
+    '    this line is only for interpreter requests and call decline_request to end. Give the caller',
+    '    the benefit of the doubt first; only decline when it is clear.',
   ].join('\n');
 }
 
@@ -157,6 +171,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
     callerAddress: callerAddress ?? null,
     memory,
     handoffDone: false,
+    declined: false,
     persisted: false,
   });
 }
@@ -363,6 +378,26 @@ async function dispatchTool(
       return JSON.stringify({ ok: true, complete: true, summary: summarize(state.intake) });
     }
 
+    case 'decline_request': {
+      const reason = String((block.input as { reason?: string }).reason ?? 'other');
+      state.declined = true;
+      log.info({ conversationId, tool: 'decline_request', reason }, 'tool call');
+      // Persist a declined record so non-leads are auditable, then end.
+      try {
+        await saveRequest({
+          id: randomUUID(),
+          conversationId,
+          callerHash: state.callerHash,
+          status: 'declined',
+          record: { ...state.intake, notes: `declined: ${reason}` },
+        });
+        state.persisted = true;
+      } catch (err) {
+        log.error({ conversationId, err }, 'failed to persist declined request');
+      }
+      return JSON.stringify({ ok: true, declined: true, message: 'Politely end the call.' });
+    }
+
     default:
       log.warn({ conversationId, tool: block.name }, 'unknown tool call');
       return JSON.stringify({ ok: false, reason: `Unknown tool ${block.name}` });
@@ -420,10 +455,8 @@ async function finalizeComplete(
 export async function endCall(conversationId: string): Promise<void> {
   const state = calls.get(conversationId);
   if (!state) return;
-  log.info(
-    { conversationId, status: state.handoffDone ? 'complete' : 'abandoned' },
-    'call ended',
-  );
+  const endStatus = state.declined ? 'declined' : state.handoffDone ? 'complete' : 'abandoned';
+  log.info({ conversationId, status: endStatus }, 'call ended');
   try {
     if (!state.persisted) {
       await saveRequest({

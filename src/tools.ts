@@ -85,8 +85,29 @@ export const REQUEST_HANDOFF: Anthropic.Tool = {
   input_schema: { type: 'object', additionalProperties: false, properties: {} },
 };
 
+export const DECLINE_REQUEST: Anthropic.Tool = {
+  name: 'decline_request',
+  description:
+    'End the call when the caller is clearly not here for an interpreter — a wrong number, a ' +
+    'sales/spam call, someone just testing, or an abusive caller. Only use this once it is clear; ' +
+    'give a genuine caller the benefit of the doubt first. Pass a short reason for the record.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['reason'],
+    properties: {
+      reason: {
+        type: 'string',
+        enum: ['wrong_number', 'spam_or_sales', 'testing', 'abusive', 'other'],
+        description: 'Why the caller is not a qualified interpreter request.',
+      },
+    },
+  },
+};
+
 export const TOOLS: Anthropic.Tool[] = [
   RECORD_INTAKE,
   CHOOSE_SERVICE_TIER,
   REQUEST_HANDOFF,
+  DECLINE_REQUEST,
 ];

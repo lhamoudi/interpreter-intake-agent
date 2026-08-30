@@ -95,12 +95,12 @@ export async function rememberCaller(callerHash: string | null, r: IntakeRecord)
   });
 }
 
-/** Write the durable request record. `status` is 'complete' or 'abandoned'. */
+/** Write the durable request record. */
 export async function saveRequest(params: {
   id: string;
   conversationId: string;
   callerHash: string | null;
-  status: 'complete' | 'abandoned';
+  status: 'complete' | 'abandoned' | 'declined';
   record: IntakeRecord;
 }): Promise<void> {
   const { id, conversationId, callerHash, status, record: r } = params;

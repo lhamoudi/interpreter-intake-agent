@@ -44,6 +44,13 @@ interface CallState {
   memory: CallerMemory | null;
   handoffDone: boolean;
   persisted: boolean;
+  /**
+   * Language the caller is being served in, when non-English. Set from returning-
+   * caller memory at initCall and updated by set_language. Drives a prompt line
+   * telling the model to WRITE in this language — switching the TTS voice alone
+   * only changes the accent, not the words.
+   */
+  activeLanguage: string | null;
 }
 
 const calls = new Map<string, CallState>();
@@ -121,6 +128,20 @@ function callerAddressPreamble(callerAddress: string | null): string {
   );
 }
 
+/**
+ * When serving a non-English caller, the TTS voice and STT locale are switched,
+ * but the model still writes English unless told not to — which is why a French
+ * caller heard English words in a French-accent voice. This forces the words.
+ */
+function languagePreamble(activeLanguage: string | null): string {
+  if (!activeLanguage) return '';
+  return (
+    `\n\nIMPORTANT: this caller is being served in ${activeLanguage}. Write EVERY reply ` +
+    `entirely in ${activeLanguage} — every word you say aloud must be ${activeLanguage}, not ` +
+    'English. Tool calls and field values stay as normal data; only your spoken replies change.'
+  );
+}
+
 function memoryPreamble(memory: CallerMemory | null): string {
   if (!memory || memory.callCount === 0) return '';
   const known = [
@@ -164,6 +185,15 @@ export async function initCall(conversationId: string, callerAddress: string | u
         callbackNumber: memory.callbackNumber,
       }
     : {};
+  // A returning non-English caller was already greeted + preset to their language
+  // in the TwiML (see index.ts), so seed activeLanguage to keep the model writing
+  // in it from the first turn.
+  const presetLang =
+    memory?.sourceLanguage && isSupported(memory.sourceLanguage) &&
+    memory.sourceLanguage.trim().toLowerCase() !== 'english'
+      ? memory.sourceLanguage
+      : null;
+
   calls.set(conversationId, {
     history: [],
     intake: seed,
@@ -172,6 +202,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
     memory,
     handoffDone: false,
     persisted: false,
+    activeLanguage: presetLang,
   });
 }
 
@@ -196,7 +227,10 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   state.history.push({ role: 'user', content: userMessage });
 
   const system =
-    baseSystemPrompt() + callerAddressPreamble(state.callerAddress) + memoryPreamble(state.memory);
+    baseSystemPrompt() +
+    callerAddressPreamble(state.callerAddress) +
+    languagePreamble(state.activeLanguage) +
+    memoryPreamble(state.memory);
 
   // Tool loop: Claude may speak AND call a tool in the same hop (a text block
   // alongside tool_use blocks) — that spoken text must not be dropped just
@@ -283,6 +317,11 @@ async function dispatchTool(
         return JSON.stringify({ ok: false, reason: `Language "${language}" is not supported for switching.` });
       }
       const switched = switchLanguage(deps.voice, deps.conversationId, language);
+      // Switching the voice/STT is not enough — record it so languagePreamble
+      // makes the model WRITE in this language too (English is null = no preamble).
+      if (switched) {
+        state.activeLanguage = language.trim().toLowerCase() === 'english' ? null : language;
+      }
       log.info({ conversationId, tool: 'set_language', language, ok: switched }, 'tool call');
       return JSON.stringify({ ok: switched, language });
     }

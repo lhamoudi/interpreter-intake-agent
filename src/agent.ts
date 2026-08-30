@@ -74,28 +74,29 @@ function baseSystemPrompt(): string {
     '    helpful but NOT required — if they are unsure or would rather not say, do not press; move on.',
     '  - anything else that matters most to them (open text — capture as notes)',
     '',
-    'Once you have all the required details and have confirmed them, offer the caller three ways',
-    'to be served, briefly and naturally (do not lecture — a sentence is enough):',
-    '  1. An AI interpreter can help right at low cost, on this call.',
-    '  2. A professional human interpreter — we connect them on this call now, higher cost, best',
-    '     for sensitive or complex situations.',
-    '  3. We can email them a link to join a video session — voice or video, and they can share',
-    '     their screen or a document like a form or letter. Also lower cost than a phone interpreter.',
-    'When they pick one, call choose_service_tier with their choice. For the video option you must',
-    'have their email address — ask for it if you don\'t have it, then pass it to choose_service_tier',
-    '(the link is emailed, not texted). The system will set up the video session (for video), or you',
-    'should call request_handoff (for human, or if AI/video is unavailable and it falls back).',
+    'Once you have all the required details and have confirmed them, proceed by urgency:',
+    '',
+    'IF they need someone NOW: offer three ways to be served, briefly and naturally (one sentence):',
+    '  1. An AI interpreter can help right now on this call at low cost.',
+    '  2. A professional human interpreter — connected on this call now, higher cost, best for',
+    '     sensitive or complex situations.',
+    '  3. A link emailed to join a video session — voice or video, share screen or documents.',
+    'When they pick one, call choose_service_tier. For "video" you must have their email (ask if',
+    'needed). For "human" (or an AI/video fallback), then call request_handoff — this connects them',
+    'live, so tell them to stay on the line while the call transfers. Do NOT say "call you back".',
+    '',
+    'IF they are SCHEDULING for later: do NOT offer the live options. Just confirm a human',
+    'interpreter will call them back at the agreed time and number, call choose_service_tier with',
+    '"human", then request_handoff. Tell them they can hang up and will be called back — do NOT',
+    'say to stay on the line.',
     '',
     'Rules:',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
-    '  - Confirm the collected details back before you offer the service options.',
-    '  - Do not offer the service options until every required detail is collected.',
-    '  - After choose_service_tier: for "video", tell them to watch for the email; for "human"',
-    '    (or a fallback), call request_handoff. If request_handoff reports missing fields, ask.',
-    '  - On the human tier, after request_handoff succeeds, tell the caller you are connecting',
-    '    them to an interpreter now and to please stay on the line — the call transfers when you',
-    '    finish speaking. Do NOT say you will call them back; it is a live connection.',
+    '  - Confirm the collected details back before you offer options / arrange the callback.',
+    '  - Do not proceed until every required detail is collected.',
+    '  - After choose_service_tier: for "video", tell them to watch for the email; otherwise call',
+    '    request_handoff. If request_handoff reports missing fields, ask for them.',
     '  - You are speaking aloud. No markdown, asterisks, bullets, or emojis. Keep replies to a',
     '    sentence or two, plain and calm.',
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
@@ -244,7 +245,9 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   // Belt-and-suspenders: if every hop somehow produced only tool calls and no
   // words, don't hand the channel an empty string — on a live call that reads
   // as dead air.
-  return spoken.join(' ') || 'Got it, thank you.';
+  const reply = spoken.join(' ') || 'Got it, thank you.';
+  log.info({ conversationId: convId, heard: userMessage, said: reply }, 'turn'); // TEMP debug
+  return reply;
 }
 
 function textOf(content: Anthropic.ContentBlock[]): string {

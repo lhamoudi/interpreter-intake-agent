@@ -33,6 +33,17 @@ export interface IntakeRecord {
   industry?: Industry;
   urgency?: Urgency;
   callbackNumber?: string;
+  /**
+   * When a scheduled caller wants the callback, exactly as they said it
+   * ("in 5 minutes", "tomorrow at 3pm"). Kept verbatim so a human never has to
+   * trust the parse alone.
+   */
+  scheduledTimeText?: string;
+  /**
+   * The above resolved to an ISO-8601 timestamp (Claude computes it from the
+   * current time given in the prompt). May be absent if the caller was vague.
+   */
+  scheduledTimeISO?: string;
   /** Free text: "what matters most" — context for the interpreter. */
   notes?: string;
   /** Which service tier the caller chose (set at deflection, after core intake). */
@@ -71,9 +82,9 @@ function isBlank(v: unknown): boolean {
 /** Deterministic completeness check. This — not the model — gates handoff. */
 export function checkComplete(record: IntakeRecord): Completeness {
   const required: (keyof IntakeRecord)[] = [...REQUIRED_SLOTS];
-  // A scheduled (call-back-later) request needs a callback number; an urgent
-  // "now" request is connected live, so it doesn't.
-  if (record.urgency === 'scheduled') required.push('callbackNumber');
+  // A scheduled (call-back-later) request needs a callback number AND a requested
+  // time; an urgent "now" request is connected live, so it needs neither.
+  if (record.urgency === 'scheduled') required.push('callbackNumber', 'scheduledTimeText');
 
   const missing = required.filter((slot) => {
     const v = record[slot];
@@ -101,7 +112,11 @@ export function summarize(record: IntakeRecord): string {
       ? `${record.genderPreference} interpreter`
       : undefined,
     record.industry,
-    record.urgency === 'now' ? 'needed now' : record.urgency === 'scheduled' ? 'scheduled' : undefined,
+    record.urgency === 'now'
+      ? 'needed now'
+      : record.urgency === 'scheduled'
+        ? `scheduled${record.scheduledTimeText ? ` for ${record.scheduledTimeText}` : ''}`
+        : undefined,
     record.callbackNumber && `callback ${record.callbackNumber}`,
   ].filter(Boolean);
   return parts.join(', ');

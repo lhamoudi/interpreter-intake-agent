@@ -40,17 +40,20 @@ export function buildHandoffData(conversationId: string, record: IntakeRecord): 
   const urgent = record.urgency === 'now';
   const industryLabel = record.industry ? record.industry[0].toUpperCase() + record.industry.slice(1) : 'General';
 
+  const scheduled = record.urgency === 'scheduled';
+  const timeSuffix = scheduled && record.scheduledTimeText ? ` · ⏰ ${record.scheduledTimeText}` : '';
+
   return JSON.stringify({
     attributes: {
       // --- Task title (queue + call canvas) ---
-      name: `${urgent ? '🔴 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}`,
+      name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
 
       // --- Keys the STOCK Flex UI already renders ---
       // Flex's default TaskInfoPanel shows customerName prominently.
       customerName: `${languagePair} interpreter request`,
 
       // --- Structured record for a plugin / the raw attributes view ---
-      type: 'interpreter_intake',
+      type: scheduled ? 'interpreter_callback' : 'interpreter_intake',
       conversationId,
       serviceTier: record.serviceTier ?? 'human',
       interpreterRequest: {
@@ -62,6 +65,9 @@ export function buildHandoffData(conversationId: string, record: IntakeRecord): 
         urgency: record.urgency ?? null,
         urgent,
         callbackNumber: record.callbackNumber ?? null,
+        // Scheduled-callback fields — the human agent calls back at this time.
+        scheduledTimeText: record.scheduledTimeText ?? null,
+        scheduledTimeISO: record.scheduledTimeISO ?? null,
         notes: record.notes ?? null,
       },
 

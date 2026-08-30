@@ -36,7 +36,6 @@ export interface CallerMemory {
   targetLanguage?: string;
   genderPreference?: string;
   industry?: string;
-  callbackNumber?: string;
   callCount: number;
 }
 
@@ -59,7 +58,7 @@ export async function lookupCallerByAddress(
 export async function getCallerMemory(callerHash: string | null): Promise<CallerMemory | null> {
   if (!callerHash) return null;
   const res = await db().execute({
-    sql: 'SELECT source_language, target_language, gender_preference, industry, callback_number, call_count FROM callers WHERE caller_hash = ?',
+    sql: 'SELECT source_language, target_language, gender_preference, industry, call_count FROM callers WHERE caller_hash = ?',
     args: [callerHash],
   });
   const row = res.rows[0];
@@ -69,7 +68,6 @@ export async function getCallerMemory(callerHash: string | null): Promise<Caller
     targetLanguage: (row.target_language as string) ?? undefined,
     genderPreference: (row.gender_preference as string) ?? undefined,
     industry: (row.industry as string) ?? undefined,
-    callbackNumber: (row.callback_number as string) ?? undefined,
     callCount: Number(row.call_count ?? 0),
   };
 }
@@ -78,14 +76,13 @@ export async function getCallerMemory(callerHash: string | null): Promise<Caller
 export async function rememberCaller(callerHash: string | null, r: IntakeRecord): Promise<void> {
   if (!callerHash) return;
   await db().execute({
-    sql: `INSERT INTO callers (caller_hash, source_language, target_language, gender_preference, industry, callback_number, call_count, last_seen_at)
-          VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    sql: `INSERT INTO callers (caller_hash, source_language, target_language, gender_preference, industry, call_count, last_seen_at)
+          VALUES (?, ?, ?, ?, ?, 1, datetime('now'))
           ON CONFLICT(caller_hash) DO UPDATE SET
             source_language = COALESCE(excluded.source_language, source_language),
             target_language = COALESCE(excluded.target_language, target_language),
             gender_preference = COALESCE(excluded.gender_preference, gender_preference),
             industry = COALESCE(excluded.industry, industry),
-            callback_number = COALESCE(excluded.callback_number, callback_number),
             call_count = call_count + 1,
             last_seen_at = datetime('now')`,
     args: [
@@ -94,7 +91,6 @@ export async function rememberCaller(callerHash: string | null, r: IntakeRecord)
       r.targetLanguage ?? null,
       r.genderPreference ?? null,
       r.industry ?? null,
-      r.callbackNumber ?? null,
     ],
   });
 }
@@ -110,8 +106,8 @@ export async function saveRequest(params: {
   const { id, conversationId, callerHash, status, record: r } = params;
   await db().execute({
     sql: `INSERT INTO requests (id, conversation_id, caller_hash, status, source_language, target_language,
-             gender_preference, industry, urgency, callback_number, service_tier, notes, raw_intake, completed_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'complete' THEN datetime('now') ELSE NULL END)`,
+             gender_preference, industry, service_tier, notes, raw_intake, completed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'complete' THEN datetime('now') ELSE NULL END)`,
     args: [
       id,
       conversationId,
@@ -121,8 +117,6 @@ export async function saveRequest(params: {
       r.targetLanguage ?? null,
       r.genderPreference ?? null,
       r.industry ?? null,
-      r.urgency ?? null,
-      r.callbackNumber ?? null,
       r.serviceTier ?? null,
       r.notes ?? null,
       JSON.stringify(r),
@@ -134,7 +128,7 @@ export async function saveRequest(params: {
 /** Read-back for the coordinator dashboard (GET /requests). */
 export async function listRequests(limit = 50): Promise<Record<string, unknown>[]> {
   const res = await db().execute({
-    sql: 'SELECT id, conversation_id, status, source_language, target_language, gender_preference, industry, urgency, callback_number, service_tier, notes, created_at, completed_at FROM requests ORDER BY created_at DESC LIMIT ?',
+    sql: 'SELECT id, conversation_id, status, source_language, target_language, gender_preference, industry, service_tier, notes, created_at, completed_at FROM requests ORDER BY created_at DESC LIMIT ?',
     args: [limit],
   });
   return res.rows as unknown as Record<string, unknown>[];

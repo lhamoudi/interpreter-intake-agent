@@ -13,40 +13,23 @@
  * the routing lives in the Studio Flow.
  */
 
-import twilio from 'twilio';
-import { createLogger, maskPhone } from 'twilio-agent-connect';
 import { type IntakeRecord } from './intake.js';
 
-const log = createLogger({ name: 'handoff' });
-
 /**
- * The Flex task attributes for this request — shared by the live-transfer handoff
- * (wrapped as handoffData for the Studio Flow) and the directly-created callback
- * task. Everything the receiving interpreter sees lives here.
+ * The Flex task attributes for this request. Every request is a live connect, so
+ * the caller is on the line — the interpreter sees the request context here.
  */
 export function buildTaskAttributes(
   conversationId: string,
   record: IntakeRecord,
 ): Record<string, unknown> {
   const languagePair = `${record.sourceLanguage ?? 'unknown'} → ${record.targetLanguage ?? 'English'}`;
-  const urgent = record.urgency === 'now';
-  const scheduled = record.urgency === 'scheduled';
   const industryLabel = record.industry ? record.industry[0].toUpperCase() + record.industry.slice(1) : 'General';
-  const timeSuffix = scheduled && record.scheduledTimeText ? ` · ⏰ ${record.scheduledTimeText}` : '';
 
   return {
-    name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
-    // Flex's "Customer name / Phone number" panel row reads attributes.customers.
-    // Put the callback number here so the interpreter sees who/where to call.
-    customers: {
-      phone: record.callbackNumber ?? undefined,
-      name: scheduled ? `Callback: ${record.scheduledTimeText ?? 'scheduled'}` : `${languagePair} request`,
-    },
-    // Also expose these directly for a plugin / raw view.
-    callbackNumber: record.callbackNumber ?? undefined,
-    callbackTime: record.scheduledTimeText ?? undefined,
-    callbackTimeISO: record.scheduledTimeISO ?? undefined,
-    type: scheduled ? 'interpreter_callback' : 'interpreter_intake',
+    name: `${languagePair}${record.industry ? ` · ${industryLabel}` : ''}`,
+    customers: { name: `${languagePair} request` },
+    type: 'interpreter_intake',
     conversationId,
     serviceTier: record.serviceTier ?? 'human',
     interpreterRequest: {
@@ -55,55 +38,13 @@ export function buildTaskAttributes(
       targetLanguage: record.targetLanguage ?? 'English',
       genderPreference: record.genderPreference ?? 'no_preference',
       industry: record.industry ?? null,
-      urgency: record.urgency ?? null,
-      urgent,
-      callbackNumber: record.callbackNumber ?? null,
-      scheduledTimeText: record.scheduledTimeText ?? null,
-      scheduledTimeISO: record.scheduledTimeISO ?? null,
       notes: record.notes ?? null,
     },
     conversations: {
       conversation_attribute_1: record.sourceLanguage ?? undefined,
       conversation_attribute_2: record.industry ?? undefined,
-      conversation_attribute_3: urgent ? 'urgent' : 'scheduled',
     },
   };
-}
-
-/**
- * Create a TaskRouter task directly (NOT via the live-call Studio transfer) so a
- * scheduled caller can hang up and be called back. Flex shows it as a task the
- * interpreter actions at the requested time. Returns false on any failure.
- */
-export async function createCallbackTask(
-  conversationId: string,
-  record: IntakeRecord,
-): Promise<boolean> {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const workspace = process.env.TWILIO_WORKSPACE_SID;
-  const workflow = process.env.TWILIO_CALLBACK_WORKFLOW_SID;
-  const taskChannel = process.env.TWILIO_CALLBACK_TASK_CHANNEL ?? 'default';
-  if (!sid || !token || !workspace || !workflow) {
-    log.error({ conversationId }, 'callback task env not set (TWILIO_WORKSPACE_SID/CALLBACK_WORKFLOW_SID)');
-    return false;
-  }
-  try {
-    const client = twilio(sid, token);
-    const task = await client.taskrouter.v1.workspaces(workspace).tasks.create({
-      workflowSid: workflow,
-      taskChannel,
-      attributes: JSON.stringify(buildTaskAttributes(conversationId, record)),
-    });
-    log.info(
-      { conversationId, taskSid: task.sid, callbackNumber: record.callbackNumber ? maskPhone(record.callbackNumber) : undefined, when: record.scheduledTimeText },
-      'callback task created',
-    );
-    return true;
-  } catch (err) {
-    log.error({ conversationId, err }, 'failed to create callback task');
-    return false;
-  }
 }
 
 /**

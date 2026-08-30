@@ -23,8 +23,7 @@ const conversationId = randomUUID() as ConversationId;
 const turns = [
   "Hi, I need someone who speaks Spanish, I'm having trouble with my landlord.",
   "Um, either a man or a woman is fine, I don't really care.",
-  "I need this pretty urgently, like right now if possible.",
-  "You can reach me at 555-123-4567.",
+  "Human interpreter please.",
   "Yes, that's all correct, go ahead.",
 ];
 

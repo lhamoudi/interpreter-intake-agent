@@ -20,7 +20,7 @@ import {
   summarize,
 } from './intake.js';
 import { deflectToVideoRoom } from './deflection.js';
-import { buildHandoffData, createCallbackTask } from './handoff.js';
+import { buildHandoffData } from './handoff.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -47,68 +47,37 @@ interface CallState {
 
 const calls = new Map<string, CallState>();
 
-/** Current time in the assumed caller timezone, for resolving relative times. */
-function nowInTz(): string {
-  const tz = process.env.DEFAULT_CALLER_TZ ?? 'America/New_York';
-  try {
-    return `${new Date().toLocaleString('en-US', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' })} (${tz})`;
-  } catch {
-    return `${new Date().toISOString()} (UTC)`;
-  }
-}
-
 function baseSystemPrompt(): string {
   return [
     'You are the intake voice agent for an over-the-phone interpretation service.',
     'A caller needs a human interpreter. Your job is to warmly and efficiently collect',
     'the details needed to secure the right interpreter, then hand off to a human.',
     '',
-    `The current time is ${nowInTz()}. Use it to resolve a relative callback time ` +
-    '("in 5 minutes", "tomorrow at 3pm") into scheduledTimeISO with the correct timezone offset. ' +
-    'When you CONFIRM the time back to the caller, repeat it in THEIR words / their local time ' +
-    '(e.g. "in about 20 minutes", "tomorrow at 3 p.m.") — never read a UTC time or an ISO string aloud.',
-    '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
     '  - which language the caller needs an interpreter for (their language), interpreted INTO',
     '    English by default. Record it as sourceLanguage; default targetLanguage to English unless',
     '    they say otherwise. You yourself speak English throughout.',
     '  - whether they prefer a male or female interpreter, or have no preference',
-    '  - whether they need someone right now or are scheduling for later',
-    '  - ONLY IF they are scheduling for later: a callback number AND when they want the callback.',
-    '    By DEFAULT use the number they are calling from (given below) — record it and say you will',
-    '    call them back on the number they are calling from; only ask for a different number if they',
-    '    want one. Accept relative ("in 5 minutes") or absolute ("tomorrow at 3pm") times; record the',
-    '    caller\'s exact words as scheduledTimeText and your ISO resolution as scheduledTimeISO, and',
-    '    confirm the time back. NEVER read a full phone number aloud digit by digit — you misspeak it.',
-    '    To confirm a number, say only the last four digits ("the number ending in nine nine four',
-    '    eight") or "the number you\'re calling from". If they need someone NOW, do not ask for a',
-    '    callback number or time — they are connected on this call.',
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
     '    matter, or something else) and map their answer to medical, legal, or community. This is',
     '    helpful but NOT required — if they are unsure or would rather not say, do not press; move on.',
     '  - anything else that matters most to them (open text — capture as notes)',
     '',
-    'Once you have all the required details and have confirmed them, proceed by urgency:',
-    '',
-    'IF they need someone NOW: offer three ways to be served, briefly and naturally (one sentence):',
+    'Once you have all the required details and have confirmed them, offer three ways to be served,',
+    'briefly and naturally (one sentence):',
     '  1. An AI interpreter can help right now on this call at low cost.',
-    '  2. A professional human interpreter — connected on this call now, higher cost, best for',
+    '  2. A professional human interpreter, connected on this call now — higher cost, best for',
     '     sensitive or complex situations.',
     '  3. A link emailed to join a video session — voice or video, share screen or documents.',
     'When they pick one, call choose_service_tier. For "video" you must have their email (ask if',
     'needed). For "human" (or an AI/video fallback), then call request_handoff — this connects them',
     'live, so tell them to stay on the line while the call transfers. Do NOT say "call you back".',
     '',
-    'IF they are SCHEDULING for later: do NOT offer the live options. Just confirm a human',
-    'interpreter will call them back at the agreed time and number, call choose_service_tier with',
-    '"human", then request_handoff. Tell them they can hang up and will be called back — do NOT',
-    'say to stay on the line.',
-    '',
     'Rules:',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
-    '  - Confirm the collected details back before you offer options / arrange the callback.',
+    '  - Confirm the collected details back before you offer options.',
     '  - Do not proceed until every required detail is collected.',
     '  - After choose_service_tier: for "video", tell them to watch for the email; otherwise call',
     '    request_handoff. If request_handoff reports missing fields, ask for them.',
@@ -117,9 +86,6 @@ function baseSystemPrompt(): string {
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
     '    whether or not you also call a tool along the way. The caller cannot see tool calls, only',
     '    hear you, so a turn that ends in silence sounds like the line went dead.',
-    '  - Never read a full phone number aloud — you misspeak the digits. Confirm a number only by',
-    '    its last four digits (as words: "ending in nine nine four eight") or as "the number you\'re',
-    '    calling from". The exact number is captured in the record regardless.',
   ].join('\n');
 }
 
@@ -147,7 +113,6 @@ function memoryPreamble(memory: CallerMemory | null): string {
       memory.genderPreference !== 'no_preference' &&
       `they prefer a ${memory.genderPreference} interpreter`,
     memory.industry && `often ${memory.industry}`,
-    memory.callbackNumber && `their usual callback number is ${memory.callbackNumber}`,
   ].filter(Boolean);
   if (known.length === 0) return '';
   return (
@@ -288,7 +253,6 @@ async function dispatchTool(
           conversationId,
           tool: 'record_intake',
           fields: Object.keys(patch),
-          callbackNumberProvided: Boolean(patch.callbackNumber),
           complete,
           missing,
         },
@@ -393,7 +357,6 @@ async function dispatchTool(
           conversationId,
           tool: 'request_handoff',
           complete: true,
-          callbackNumber: state.intake.callbackNumber ? maskPhone(state.intake.callbackNumber) : undefined,
         },
         'tool call',
       );
@@ -438,17 +401,9 @@ async function finalizeComplete(
 
   if (!notifyHuman) return;
 
-  if (state.intake.urgency === 'scheduled') {
-    // Scheduled: DON'T transfer the live call — the caller wants to hang up and
-    // be called back. Create a TaskRouter task directly; the caller then ends the
-    // call normally. No pendingHandoffData (that would transfer the live call).
-    await createCallbackTask(conversationId, state.intake);
-    return;
-  }
-
-  // Now/urgent human: transfer the LIVE call to Flex. Set the TAC voice-handoff
-  // payload; the voice channel emits the ConversationRelay `end` with it, and the
-  // Studio Flow (TWILIO_STUDIO_HANDOFF_FLOW_SID) routes the call into Flex.
+  // Transfer the LIVE call to Flex. Set the TAC voice-handoff payload; the voice
+  // channel emits the ConversationRelay `end` with it, and the Studio Flow
+  // (TWILIO_STUDIO_HANDOFF_FLOW_SID) routes the call into Flex.
   if (deps.session) {
     deps.session.pendingHandoffData = {
       type: 'end',

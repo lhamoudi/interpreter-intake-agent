@@ -12,41 +12,26 @@ describe('checkComplete', () => {
     expect(checkComplete({}).complete).toBe(false);
   });
 
-  it('lists every missing required slot (callbackNumber excluded until urgency is known)', () => {
+  it('lists every missing required slot', () => {
     const { missing } = checkComplete({ sourceLanguage: 'Spanish' });
-    expect(missing).toEqual(['targetLanguage', 'genderPreference', 'urgency']);
+    expect(missing).toEqual(['targetLanguage', 'genderPreference']);
   });
 
-  it('a "now" caller is complete WITHOUT a callback number (connected live)', () => {
-    const record: IntakeRecord = {
+  it('is complete once language pair and gender are set', () => {
+    const result = checkComplete({
       sourceLanguage: 'Spanish',
       targetLanguage: 'English',
       genderPreference: 'no_preference',
-      urgency: 'now',
-    };
-    const result = checkComplete(record);
+    });
     expect(result.complete).toBe(true);
     expect(result.missing).toEqual([]);
   });
 
-  it('a "scheduled" caller still needs a callback number', () => {
-    const base: IntakeRecord = {
-      sourceLanguage: 'Spanish',
-      targetLanguage: 'English',
-      genderPreference: 'no_preference',
-      urgency: 'scheduled',
-    };
-    expect(checkComplete(base).missing).toEqual(['callbackNumber']);
-    expect(checkComplete({ ...base, callbackNumber: '+15551234567' }).complete).toBe(true);
-  });
-
-  it('treats an empty-string callback number as missing for a scheduled caller', () => {
+  it('treats an empty-string required value as missing', () => {
     const { complete } = checkComplete({
       sourceLanguage: 'Spanish',
       targetLanguage: 'English',
-      genderPreference: 'no_preference',
-      urgency: 'scheduled',
-      callbackNumber: '   ',
+      genderPreference: '   ' as never,
     });
     expect(complete).toBe(false);
   });
@@ -66,9 +51,9 @@ describe('mergeIntake', () => {
   });
 
   it('ignores a blank-string patch value rather than clobbering the prior one', () => {
-    const base: IntakeRecord = { callbackNumber: '+15551234567' };
-    const next = mergeIntake(base, { callbackNumber: '' });
-    expect(next.callbackNumber).toBe('+15551234567');
+    const base: IntakeRecord = { sourceLanguage: 'Spanish' };
+    const next = mergeIntake(base, { sourceLanguage: '' });
+    expect(next.sourceLanguage).toBe('Spanish');
   });
 
   it('does not mutate the base record', () => {
@@ -79,15 +64,14 @@ describe('mergeIntake', () => {
 });
 
 describe('summarize', () => {
-  it('formats the language pair, gender, urgency, and callback number', () => {
+  it('formats the language pair, gender, and industry', () => {
     const summary = summarize({
       sourceLanguage: 'Spanish',
       targetLanguage: 'English',
       genderPreference: 'female',
-      urgency: 'now',
-      callbackNumber: '+15551234567',
+      industry: 'medical',
     });
-    expect(summary).toBe('Spanish to English, female interpreter, needed now, callback +15551234567');
+    expect(summary).toBe('Spanish to English, female interpreter, medical');
   });
 
   it('omits a no_preference gender rather than naming it', () => {

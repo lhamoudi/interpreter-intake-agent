@@ -35,25 +35,6 @@ export const RECORD_INTAKE: Anthropic.Tool = {
           'paperwork → "legal"; anything else (school, housing, benefits, utilities, general) → ' +
           '"community". Optional — omit if the caller is unsure or declines.',
       },
-      urgency: {
-        type: 'string',
-        enum: ['now', 'scheduled'],
-        description: '"now" if they need an interpreter immediately, "scheduled" for later.',
-      },
-      callbackNumber: { type: 'string', description: 'Best number to reach them on.' },
-      scheduledTimeText: {
-        type: 'string',
-        description:
-          'Only when urgency is "scheduled": when the caller wants the callback, in their exact ' +
-          'words (e.g. "in 5 minutes", "tomorrow at 3pm", "Monday morning").',
-      },
-      scheduledTimeISO: {
-        type: 'string',
-        description:
-          'Only when urgency is "scheduled": scheduledTimeText resolved to an ISO-8601 timestamp, ' +
-          'computed from the current time given in the system prompt (e.g. "2026-08-31T15:00:00-04:00"). ' +
-          'Omit if the caller was too vague to resolve.',
-      },
       notes: { type: 'string', description: 'Anything else that matters for the interpreter. Optional.' },
     },
   },

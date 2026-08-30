@@ -75,10 +75,14 @@ function baseSystemPrompt(): string {
     '  - whether they prefer a male or female interpreter, or have no preference',
     '  - whether they need someone right now or are scheduling for later',
     '  - ONLY IF they are scheduling for later: a callback number AND when they want the callback.',
-    '    Accept relative ("in 5 minutes", "in an hour") or absolute ("tomorrow at 3pm") times.',
-    '    Record the caller\'s exact words as scheduledTimeText and your ISO resolution as',
-    '    scheduledTimeISO. Confirm the time back to them. If they need someone NOW, do not ask for',
-    '    a callback number or time, and do not read one back — they are connected on this call.',
+    '    By DEFAULT use the number they are calling from (given below) — record it and say you will',
+    '    call them back on the number they are calling from; only ask for a different number if they',
+    '    want one. Accept relative ("in 5 minutes") or absolute ("tomorrow at 3pm") times; record the',
+    '    caller\'s exact words as scheduledTimeText and your ISO resolution as scheduledTimeISO, and',
+    '    confirm the time back. NEVER read a full phone number aloud digit by digit — you misspeak it.',
+    '    To confirm a number, say only the last four digits ("the number ending in nine nine four',
+    '    eight") or "the number you\'re calling from". If they need someone NOW, do not ask for a',
+    '    callback number or time — they are connected on this call.',
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
     '    matter, or something else) and map their answer to medical, legal, or community. This is',
@@ -113,10 +117,9 @@ function baseSystemPrompt(): string {
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
     '    whether or not you also call a tool along the way. The caller cannot see tool calls, only',
     '    hear you, so a turn that ends in silence sounds like the line went dead.',
-    '  - When you SAY a phone number aloud, write out the digit NAMES with spaces so it is read',
-    '    digit by digit, not as one big number. Drop the US country code (+1). For example for',
-    '    +13125551212 say: "three one two, five five five, one two one two". Never write it as',
-    '    "3125551212" in your spoken reply — that gets read as a single number, which is wrong.',
+    '  - Never read a full phone number aloud — you misspeak the digits. Confirm a number only by',
+    '    its last four digits (as words: "ending in nine nine four eight") or as "the number you\'re',
+    '    calling from". The exact number is captured in the record regardless.',
   ].join('\n');
 }
 
@@ -256,9 +259,7 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   // Belt-and-suspenders: if every hop somehow produced only tool calls and no
   // words, don't hand the channel an empty string — on a live call that reads
   // as dead air.
-  const reply = spoken.join(' ') || 'Got it, thank you.';
-  log.info({ conversationId: convId, said: reply }, 'reply'); // TEMP
-  return reply;
+  return spoken.join(' ') || 'Got it, thank you.';
 }
 
 function textOf(content: Anthropic.ContentBlock[]): string {

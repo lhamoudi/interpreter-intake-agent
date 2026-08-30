@@ -1,0 +1,79 @@
+/**
+ * The intake record and its completeness rules.
+ *
+ * Design decision that the panel will probe ("how does the agent decide it has
+ * enough info?"): the LLM proposes slot values via the `record_intake` tool, but
+ * it does NOT get to decide the intake is done. Completeness is a deterministic,
+ * server-side check against REQUIRED_SLOTS. The agent may only hand off once this
+ * function says the record is complete.
+ */
+
+export type GenderPreference = 'male' | 'female' | 'no_preference';
+export type Industry = 'medical' | 'legal' | 'community';
+export type Urgency = 'now' | 'scheduled';
+
+/** A single interpreter request, built up slot-by-slot over the call. */
+export interface IntakeRecord {
+  /** Language the caller speaks (BCP-47 or plain name as heard). */
+  sourceLanguage?: string;
+  /** Language they need interpreted to (usually English for US OPI). */
+  targetLanguage?: string;
+  genderPreference?: GenderPreference;
+  /** Optional — many calls have no industry preference. */
+  industry?: Industry;
+  urgency?: Urgency;
+  callbackNumber?: string;
+  /** Free text: "what matters most" — context for the interpreter. */
+  notes?: string;
+}
+
+/**
+ * Slots that MUST be present before we will secure an interpreter.
+ * `industry` and `notes` are intentionally optional.
+ */
+export const REQUIRED_SLOTS = [
+  'sourceLanguage',
+  'targetLanguage',
+  'genderPreference',
+  'urgency',
+  'callbackNumber',
+] as const satisfies readonly (keyof IntakeRecord)[];
+
+export interface Completeness {
+  complete: boolean;
+  missing: (keyof IntakeRecord)[];
+}
+
+/** Deterministic completeness check. This — not the model — gates handoff. */
+export function checkComplete(record: IntakeRecord): Completeness {
+  const missing = REQUIRED_SLOTS.filter((slot) => {
+    const v = record[slot];
+    return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+  });
+  return { complete: missing.length === 0, missing };
+}
+
+/** Merge a partial update from the model into the running record. */
+export function mergeIntake(base: IntakeRecord, patch: Partial<IntakeRecord>): IntakeRecord {
+  const next: IntakeRecord = { ...base };
+  for (const [k, v] of Object.entries(patch) as [keyof IntakeRecord, unknown][]) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'string' && v.trim() === '') continue;
+    (next as Record<string, unknown>)[k] = v;
+  }
+  return next;
+}
+
+/** Short human-readable summary used in confirmations and the handoff payload. */
+export function summarize(record: IntakeRecord): string {
+  const parts = [
+    record.sourceLanguage && `${record.sourceLanguage} to ${record.targetLanguage ?? 'English'}`,
+    record.genderPreference && record.genderPreference !== 'no_preference'
+      ? `${record.genderPreference} interpreter`
+      : undefined,
+    record.industry,
+    record.urgency === 'now' ? 'needed now' : record.urgency === 'scheduled' ? 'scheduled' : undefined,
+    record.callbackNumber && `callback ${record.callbackNumber}`,
+  ].filter(Boolean);
+  return parts.join(', ');
+}

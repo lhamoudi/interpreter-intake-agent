@@ -1,0 +1,29 @@
+{
+  "name": "interpreter-intake-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Conversational voice AI agent that intakes over-the-phone interpretation (OPI) requests and hands off to a human interpreter — Twilio Agent Connect + Claude.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@libsql/client": "^0.15.0",
+    "dotenv": "^16.4.7",
+    "twilio-agent-connect": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.11"
+  }
+}

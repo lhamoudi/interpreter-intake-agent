@@ -1,0 +1,22 @@
+# One always-on machine: ConversationRelay holds a WebSocket open for the
+# whole call, so scale-to-zero would drop live conversations. Region is a
+# placeholder — `fly launch` will prompt to confirm/change it; pick one close
+# to your Turso database region if you customized that.
+
+app = "interpreter-intake-agent"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

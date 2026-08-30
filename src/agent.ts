@@ -256,7 +256,9 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   // Belt-and-suspenders: if every hop somehow produced only tool calls and no
   // words, don't hand the channel an empty string — on a live call that reads
   // as dead air.
-  return spoken.join(' ') || 'Got it, thank you.';
+  const reply = spoken.join(' ') || 'Got it, thank you.';
+  log.info({ conversationId: convId, said: reply }, 'reply'); // TEMP
+  return reply;
 }
 
 function textOf(content: Anthropic.ContentBlock[]): string {

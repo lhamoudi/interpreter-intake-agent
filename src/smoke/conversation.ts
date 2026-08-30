@@ -1,7 +1,6 @@
 /**
  * Smoke test for the Claude tool loop — needs ANTHROPIC_API_KEY, nothing else.
- * Fakes a VoiceChannel (only `getWebsocket` is ever called, for set_language,
- * and returning null just means "language switch silently no-ops").
+ * Fakes a VoiceChannel (its methods are never exercised by this flow).
  *
  * Run with: npx tsx src/smoke/conversation.ts
  */

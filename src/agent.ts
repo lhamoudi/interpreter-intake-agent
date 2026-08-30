@@ -12,7 +12,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'node:crypto';
 import { createLogger, maskPhone, type VoiceChannel, type ConversationId } from 'twilio-agent-connect';
 import { TOOLS } from './tools.js';
-import { switchLanguage, isSupported, isEnglish, canonicalLanguage } from './language.js';
 import {
   type IntakeRecord,
   type ServiceTier,
@@ -44,13 +43,6 @@ interface CallState {
   memory: CallerMemory | null;
   handoffDone: boolean;
   persisted: boolean;
-  /**
-   * Language the caller is being served in, when non-English. Set from returning-
-   * caller memory at initCall and updated by set_language. Drives a prompt line
-   * telling the model to WRITE in this language — switching the TTS voice alone
-   * only changes the accent, not the words.
-   */
-  activeLanguage: string | null;
 }
 
 const calls = new Map<string, CallState>();
@@ -62,15 +54,13 @@ function baseSystemPrompt(): string {
     'the details needed to secure the right interpreter, then hand off to a human.',
     '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
-    '  - the language the CALLER speaks (their language), and the language to interpret INTO,',
-    '    which is English unless they say otherwise. When you ask, make clear you mean the',
-    '    language they speak — e.g. "what language do you speak?" — never a bare "what language',
-    '    do you need?", which is ambiguous. Default targetLanguage to English without asking',
-    '    unless they indicate a different target.',
+    '  - which language the caller needs an interpreter for (their language), interpreted INTO',
+    '    English by default. Record it as sourceLanguage; default targetLanguage to English unless',
+    '    they say otherwise. You yourself speak English throughout.',
     '  - whether they prefer a male or female interpreter, or have no preference',
     '  - whether they need someone right now or are scheduling for later',
     '  - a callback number ONLY IF they are scheduling for later. If they need someone now, do',
-    '    NOT ask for a number — they will be connected on this call, so a callback is unnecessary.',
+    '    NOT ask for a callback number, and do NOT read one back — they are connected on this call.',
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
     '    matter, or something else) and map their answer to medical, legal, or community. This is',
@@ -91,10 +81,6 @@ function baseSystemPrompt(): string {
     '',
     'Rules:',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
-    '  - If the caller is clearly more comfortable in another language, call set_language.',
-    '  - If the caller ASKS to switch language — in any language, e.g. "English", "anglais",',
-    '    "inglés", "en français" — call set_language with that language. Supported: English,',
-    '    Spanish, French. After switching, continue entirely in the new language.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
     '  - Confirm the collected details back before you offer the service options.',
     '  - Do not offer the service options until every required detail is collected.',
@@ -128,20 +114,6 @@ function callerAddressPreamble(callerAddress: string | null): string {
     'If they ask you to use the number they\'re calling from, or don\'t volunteer a different ' +
     'callback number, use this one — call record_intake with it and confirm it back to them ' +
     'as you would any other detail.'
-  );
-}
-
-/**
- * When serving a non-English caller, the TTS voice and STT locale are switched,
- * but the model still writes English unless told not to — which is why a French
- * caller heard English words in a French-accent voice. This forces the words.
- */
-function languagePreamble(activeLanguage: string | null): string {
-  if (!activeLanguage) return '';
-  return (
-    `\n\nIMPORTANT: this caller is being served in ${activeLanguage}. Write EVERY reply ` +
-    `entirely in ${activeLanguage} — every word you say aloud must be ${activeLanguage}, not ` +
-    'English. Tool calls and field values stay as normal data; only your spoken replies change.'
   );
 }
 
@@ -179,22 +151,17 @@ export async function initCall(conversationId: string, callerAddress: string | u
     { conversationId, returningCaller: Boolean(memory && memory.callCount > 0) },
     'call started',
   );
+  // Seed known preferences from memory, but NOT callbackNumber — it's only needed
+  // for scheduled callers, and seeding it made the agent read a stale number back
+  // to now-callers who are connected live.
   const seed: IntakeRecord = memory
     ? {
         sourceLanguage: memory.sourceLanguage,
         targetLanguage: memory.targetLanguage,
         genderPreference: memory.genderPreference as IntakeRecord['genderPreference'],
         industry: memory.industry as IntakeRecord['industry'],
-        callbackNumber: memory.callbackNumber,
       }
     : {};
-  // A returning non-English caller was already greeted + preset to their language
-  // in the TwiML (see index.ts), so seed activeLanguage to keep the model writing
-  // in it from the first turn.
-  const presetLang =
-    memory?.sourceLanguage && isSupported(memory.sourceLanguage) && !isEnglish(memory.sourceLanguage)
-      ? (canonicalLanguage(memory.sourceLanguage) ?? memory.sourceLanguage)
-      : null;
 
   calls.set(conversationId, {
     history: [],
@@ -204,7 +171,6 @@ export async function initCall(conversationId: string, callerAddress: string | u
     memory,
     handoffDone: false,
     persisted: false,
-    activeLanguage: presetLang,
   });
 }
 
@@ -226,17 +192,10 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   if (!calls.has(convId)) await initCall(convId, undefined);
   const state = calls.get(convId)!;
 
-  // Log the transcribed utterance so we can see what STT actually heard (needed
-  // to debug language switching — the caller's words never reach the tool logs).
-  log.info({ conversationId: convId, activeLanguage: state.activeLanguage, utterance: userMessage }, 'caller turn');
-
   state.history.push({ role: 'user', content: userMessage });
 
   const system =
-    baseSystemPrompt() +
-    callerAddressPreamble(state.callerAddress) +
-    languagePreamble(state.activeLanguage) +
-    memoryPreamble(state.memory);
+    baseSystemPrompt() + callerAddressPreamble(state.callerAddress) + memoryPreamble(state.memory);
 
   // Tool loop: Claude may speak AND call a tool in the same hop (a text block
   // alongside tool_use blocks) — that spoken text must not be dropped just
@@ -314,23 +273,6 @@ async function dispatchTool(
         'tool call',
       );
       return JSON.stringify({ ok: true, complete, missing });
-    }
-
-    case 'set_language': {
-      const language = String((block.input as { language?: string }).language ?? '');
-      if (!isSupported(language)) {
-        log.info({ conversationId, tool: 'set_language', language, ok: false }, 'tool call');
-        return JSON.stringify({ ok: false, reason: `Language "${language}" is not supported for switching.` });
-      }
-      const switched = switchLanguage(deps.voice, deps.conversationId, language);
-      // Switching the voice/STT is not enough — record it so languagePreamble
-      // makes the model WRITE in this language too. Store the canonical English
-      // name (caller may say "anglais"/"inglés"); English = null = no preamble.
-      if (switched) {
-        state.activeLanguage = isEnglish(language) ? null : (canonicalLanguage(language) ?? language);
-      }
-      log.info({ conversationId, tool: 'set_language', language, ok: switched }, 'tool call');
-      return JSON.stringify({ ok: switched, language });
     }
 
     case 'choose_service_tier': {

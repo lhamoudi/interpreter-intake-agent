@@ -9,11 +9,9 @@ import 'dotenv/config';
 import { TAC, TACConfig, VoiceChannel, TACServer } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
-import { resolveLanguage, returningGreeting, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
 
 const NEW_CALLER_GREETING =
-  "Thanks for calling. I can connect you with an interpreter. What language do you speak? " +
-  "We'll interpret to English unless you need another language.";
+  "Thanks for calling. I can connect you with an interpreter. What language do you need one for?";
 
 async function main() {
   const config = TACConfig.fromEnv();
@@ -31,53 +29,22 @@ async function main() {
   }
 
   const voiceChannel = new VoiceChannel(tac, {
-    defaultTwimlOptions: {
-      welcomeGreeting: NEW_CALLER_GREETING,
-      // Declare French + Spanish as <Language> children with explicit Google
-      // voices so a mid-call set_language switch has a real voice to use. Each
-      // MUST carry ttsProvider + voice; bare <Language code> children broke the
-      // call against CR's ElevenLabs default. English is the parent default.
-      languages: SUPPORTED_LANGUAGE_DECLARATIONS,
-    },
+    defaultTwimlOptions: { welcomeGreeting: NEW_CALLER_GREETING },
   });
 
-  // Personalize BEFORE the greeting is spoken. This runs at answer time with the
-  // caller's number in hand, so we look up their profile here — a returning
-  // caller is greeted by name-of-language in their own language, and STT/TTS is
-  // preset to that language, instead of hearing the generic English prompt and
-  // only being recognized a turn later (which read as "off").
+  // Greet a returning caller warmly before the first agent turn, using the number
+  // in hand at answer time. (The agent operates in English; the caller's spoken
+  // language is captured as intake data for the interpreter, not used to switch
+  // the bot's own TTS.)
   voiceChannel.onInboundCallTwiml(async (req) => {
-    // The customizer is the highest-precedence TwiML layer and `languages`
-    // replaces wholesale, so re-declare the <Language> children on every return
-    // or they get dropped and mid-call switching breaks again.
-    const base = { languages: SUPPORTED_LANGUAGE_DECLARATIONS };
-
     const memory = await lookupCallerByAddress(req.from);
-    if (!memory || memory.callCount === 0) {
-      return { ...base, welcomeGreeting: NEW_CALLER_GREETING };
-    }
-
-    const lang = memory.sourceLanguage;
-    const codes = resolveLanguage(lang);
-    const localizedGreeting = returningGreeting(lang);
-    if (lang && codes && codes.tts !== 'en-US' && localizedGreeting) {
-      // Returning caller with a known non-English language: greet, speak, and
-      // listen in it. The greeting text must be in that language too — an English
-      // greeting in the preset French voice was the bug.
+    if (memory && memory.callCount > 0) {
       return {
-        ...base,
-        welcomeGreeting: localizedGreeting,
-        ttsLanguage: codes.tts,
-        transcriptionLanguage: codes.transcription,
+        welcomeGreeting:
+          'Welcome back. I can help you set up an interpreter again — what do you need today?',
       };
     }
-    // Returning caller we know, but English (or unmapped) — warm greeting, default language.
-    return {
-      ...base,
-      welcomeGreeting: lang
-        ? `Welcome back. I can help you with a ${lang} interpreter again — what do you need today?`
-        : "Welcome back. I can connect you with an interpreter again — which language do you speak?",
-    };
+    return { welcomeGreeting: NEW_CALLER_GREETING };
   });
 
   tac.registerChannel(voiceChannel);

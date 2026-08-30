@@ -46,22 +46,6 @@ export const RECORD_INTAKE: Anthropic.Tool = {
   },
 };
 
-export const SET_LANGUAGE: Anthropic.Tool = {
-  name: 'set_language',
-  description:
-    'Switch the languages this call is spoken and transcribed in. Call this if the ' +
-    'caller is clearly not comfortable in the current language — for example they greet ' +
-    'you or answer in Spanish. Pass the plain English name of the language to switch to.',
-  input_schema: {
-    type: 'object',
-    additionalProperties: false,
-    required: ['language'],
-    properties: {
-      language: { type: 'string', description: 'Language to switch to, e.g. "Spanish", "Mandarin".' },
-    },
-  },
-};
-
 export const CHOOSE_SERVICE_TIER: Anthropic.Tool = {
   name: 'choose_service_tier',
   description:
@@ -109,7 +93,6 @@ export const REQUEST_HANDOFF: Anthropic.Tool = {
 
 export const TOOLS: Anthropic.Tool[] = [
   RECORD_INTAKE,
-  SET_LANGUAGE,
   CHOOSE_SERVICE_TIER,
   REQUEST_HANDOFF,
 ];

@@ -20,7 +20,7 @@ import {
   summarize,
 } from './intake.js';
 import { deflectToVideoRoom } from './deflection.js';
-import { buildHandoffData } from './handoff.js';
+import { buildHandoffData, createCallbackTask } from './handoff.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -422,12 +422,20 @@ async function finalizeComplete(
     log.error({ conversationId, err }, 'failed to persist completed intake');
   }
 
-  if (notifyHuman && deps.session) {
-    // Human handoff: set the TAC voice-handoff payload on the live session. The
-    // voice channel emits the ConversationRelay `end` with it after the final
-    // reply; TWILIO_STUDIO_HANDOFF_FLOW_SID makes TAC wire the `<Connect action>`
-    // URL to that Studio Flow, which routes the call into Flex via TaskRouter,
-    // carrying this lead context.
+  if (!notifyHuman) return;
+
+  if (state.intake.urgency === 'scheduled') {
+    // Scheduled: DON'T transfer the live call — the caller wants to hang up and
+    // be called back. Create a TaskRouter task directly; the caller then ends the
+    // call normally. No pendingHandoffData (that would transfer the live call).
+    await createCallbackTask(conversationId, state.intake);
+    return;
+  }
+
+  // Now/urgent human: transfer the LIVE call to Flex. Set the TAC voice-handoff
+  // payload; the voice channel emits the ConversationRelay `end` with it, and the
+  // Studio Flow (TWILIO_STUDIO_HANDOFF_FLOW_SID) routes the call into Flex.
+  if (deps.session) {
     deps.session.pendingHandoffData = {
       type: 'end',
       handoffData: buildHandoffData(conversationId, state.intake),

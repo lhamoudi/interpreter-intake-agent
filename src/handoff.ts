@@ -13,7 +13,89 @@
  * the routing lives in the Studio Flow.
  */
 
+import twilio from 'twilio';
+import { createLogger, maskPhone } from 'twilio-agent-connect';
 import { type IntakeRecord } from './intake.js';
+
+const log = createLogger({ name: 'handoff' });
+
+/**
+ * The Flex task attributes for this request — shared by the live-transfer handoff
+ * (wrapped as handoffData for the Studio Flow) and the directly-created callback
+ * task. Everything the receiving interpreter sees lives here.
+ */
+export function buildTaskAttributes(
+  conversationId: string,
+  record: IntakeRecord,
+): Record<string, unknown> {
+  const languagePair = `${record.sourceLanguage ?? 'unknown'} → ${record.targetLanguage ?? 'English'}`;
+  const urgent = record.urgency === 'now';
+  const scheduled = record.urgency === 'scheduled';
+  const industryLabel = record.industry ? record.industry[0].toUpperCase() + record.industry.slice(1) : 'General';
+  const timeSuffix = scheduled && record.scheduledTimeText ? ` · ⏰ ${record.scheduledTimeText}` : '';
+
+  return {
+    name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
+    customerName: `${languagePair} interpreter request`,
+    type: scheduled ? 'interpreter_callback' : 'interpreter_intake',
+    conversationId,
+    serviceTier: record.serviceTier ?? 'human',
+    interpreterRequest: {
+      languagePair,
+      sourceLanguage: record.sourceLanguage ?? null,
+      targetLanguage: record.targetLanguage ?? 'English',
+      genderPreference: record.genderPreference ?? 'no_preference',
+      industry: record.industry ?? null,
+      urgency: record.urgency ?? null,
+      urgent,
+      callbackNumber: record.callbackNumber ?? null,
+      scheduledTimeText: record.scheduledTimeText ?? null,
+      scheduledTimeISO: record.scheduledTimeISO ?? null,
+      notes: record.notes ?? null,
+    },
+    conversations: {
+      conversation_attribute_1: record.sourceLanguage ?? undefined,
+      conversation_attribute_2: record.industry ?? undefined,
+      conversation_attribute_3: urgent ? 'urgent' : 'scheduled',
+    },
+  };
+}
+
+/**
+ * Create a TaskRouter task directly (NOT via the live-call Studio transfer) so a
+ * scheduled caller can hang up and be called back. Flex shows it as a task the
+ * interpreter actions at the requested time. Returns false on any failure.
+ */
+export async function createCallbackTask(
+  conversationId: string,
+  record: IntakeRecord,
+): Promise<boolean> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const workspace = process.env.TWILIO_WORKSPACE_SID;
+  const workflow = process.env.TWILIO_CALLBACK_WORKFLOW_SID;
+  const taskChannel = process.env.TWILIO_CALLBACK_TASK_CHANNEL ?? 'default';
+  if (!sid || !token || !workspace || !workflow) {
+    log.error({ conversationId }, 'callback task env not set (TWILIO_WORKSPACE_SID/CALLBACK_WORKFLOW_SID)');
+    return false;
+  }
+  try {
+    const client = twilio(sid, token);
+    const task = await client.taskrouter.v1.workspaces(workspace).tasks.create({
+      workflowSid: workflow,
+      taskChannel,
+      attributes: JSON.stringify(buildTaskAttributes(conversationId, record)),
+    });
+    log.info(
+      { conversationId, taskSid: task.sid, callbackNumber: record.callbackNumber ? maskPhone(record.callbackNumber) : undefined, when: record.scheduledTimeText },
+      'callback task created',
+    );
+    return true;
+  } catch (err) {
+    log.error({ conversationId, err }, 'failed to create callback task');
+    return false;
+  }
+}
 
 /**
  * The TAC voice-handoff payload, as a JSON *string* (ConversationRelay forwards
@@ -36,47 +118,5 @@ import { type IntakeRecord } from './intake.js';
  *    under one key keeps that plugin trivial and the raw view readable.
  */
 export function buildHandoffData(conversationId: string, record: IntakeRecord): string {
-  const languagePair = `${record.sourceLanguage ?? 'unknown'} → ${record.targetLanguage ?? 'English'}`;
-  const urgent = record.urgency === 'now';
-  const industryLabel = record.industry ? record.industry[0].toUpperCase() + record.industry.slice(1) : 'General';
-
-  const scheduled = record.urgency === 'scheduled';
-  const timeSuffix = scheduled && record.scheduledTimeText ? ` · ⏰ ${record.scheduledTimeText}` : '';
-
-  return JSON.stringify({
-    attributes: {
-      // --- Task title (queue + call canvas) ---
-      name: `${urgent ? '🔴 ' : scheduled ? '📅 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}${timeSuffix}`,
-
-      // --- Keys the STOCK Flex UI already renders ---
-      // Flex's default TaskInfoPanel shows customerName prominently.
-      customerName: `${languagePair} interpreter request`,
-
-      // --- Structured record for a plugin / the raw attributes view ---
-      type: scheduled ? 'interpreter_callback' : 'interpreter_intake',
-      conversationId,
-      serviceTier: record.serviceTier ?? 'human',
-      interpreterRequest: {
-        languagePair,
-        sourceLanguage: record.sourceLanguage ?? null,
-        targetLanguage: record.targetLanguage ?? 'English',
-        genderPreference: record.genderPreference ?? 'no_preference',
-        industry: record.industry ?? null,
-        urgency: record.urgency ?? null,
-        urgent,
-        callbackNumber: record.callbackNumber ?? null,
-        // Scheduled-callback fields — the human agent calls back at this time.
-        scheduledTimeText: record.scheduledTimeText ?? null,
-        scheduledTimeISO: record.scheduledTimeISO ?? null,
-        notes: record.notes ?? null,
-      },
-
-      // --- Flex conversations/reporting keys (searchable, show in CRM strip) ---
-      conversations: {
-        conversation_attribute_1: record.sourceLanguage ?? undefined, // language
-        conversation_attribute_2: record.industry ?? undefined, // subject area
-        conversation_attribute_3: urgent ? 'urgent' : 'scheduled',
-      },
-    },
-  });
+  return JSON.stringify({ attributes: buildTaskAttributes(conversationId, record) });
 }

@@ -22,28 +22,55 @@ import { type IntakeRecord } from './intake.js';
  * Shape is dictated by Twilio's "TAC Handoff to Agent" Studio template: it parses
  * this string and sets the Flex TASK ATTRIBUTES to the top-level `attributes`
  * object (`{{flow.variables.handoffData.attributes | to_json}}`). So everything
- * the receiving interpreter should see must live under `attributes`. Flex renders
- * task attributes in the agent panel; `name` becomes the task's display label.
+ * the receiving interpreter should see must live under `attributes`.
+ *
+ * How Flex presents these to the agent:
+ *  - `name` → the task's title in the queue and call canvas. Keep it a tight
+ *    one-line summary, not the whole record.
+ *  - Flex's DEFAULT TaskInfoPanel renders a handful of conventional keys nicely
+ *    (notably `customerName` and the `conversations.*` reporting keys). We set
+ *    those so the agent sees useful context even with the stock UI.
+ *  - `interpreterRequest` groups the full captured intake as labelled fields.
+ *    The stock UI shows it as JSON; a small Flex plugin (TaskCanvasTabs /
+ *    TaskInfoPanel) can render it as a clean card — see WRITEUP. Grouping it
+ *    under one key keeps that plugin trivial and the raw view readable.
  */
 export function buildHandoffData(conversationId: string, record: IntakeRecord): string {
   const languagePair = `${record.sourceLanguage ?? 'unknown'} → ${record.targetLanguage ?? 'English'}`;
+  const urgent = record.urgency === 'now';
+  const industryLabel = record.industry ? record.industry[0].toUpperCase() + record.industry.slice(1) : 'General';
+
   return JSON.stringify({
-    // Consumed by the Studio template → becomes the Flex task attributes.
     attributes: {
-      // A readable task label for the Flex agent's queue.
-      name: `Interpreter: ${languagePair}${record.industry ? ` (${record.industry})` : ''}`,
+      // --- Task title (queue + call canvas) ---
+      name: `${urgent ? '🔴 ' : ''}${languagePair}${record.industry ? ` · ${industryLabel}` : ''}`,
+
+      // --- Keys the STOCK Flex UI already renders ---
+      // Flex's default TaskInfoPanel shows customerName prominently.
+      customerName: `${languagePair} interpreter request`,
+
+      // --- Structured record for a plugin / the raw attributes view ---
       type: 'interpreter_intake',
       conversationId,
       serviceTier: record.serviceTier ?? 'human',
-      // The captured intake, flattened so each field shows in the Flex panel.
-      sourceLanguage: record.sourceLanguage ?? null,
-      targetLanguage: record.targetLanguage ?? 'English',
-      languagePair,
-      genderPreference: record.genderPreference ?? 'no_preference',
-      industry: record.industry ?? null,
-      urgency: record.urgency ?? null,
-      callbackNumber: record.callbackNumber ?? null,
-      notes: record.notes ?? null,
+      interpreterRequest: {
+        languagePair,
+        sourceLanguage: record.sourceLanguage ?? null,
+        targetLanguage: record.targetLanguage ?? 'English',
+        genderPreference: record.genderPreference ?? 'no_preference',
+        industry: record.industry ?? null,
+        urgency: record.urgency ?? null,
+        urgent,
+        callbackNumber: record.callbackNumber ?? null,
+        notes: record.notes ?? null,
+      },
+
+      // --- Flex conversations/reporting keys (searchable, show in CRM strip) ---
+      conversations: {
+        conversation_attribute_1: record.sourceLanguage ?? undefined, // language
+        conversation_attribute_2: record.industry ?? undefined, // subject area
+        conversation_attribute_3: urgent ? 'urgent' : 'scheduled',
+      },
     },
   });
 }

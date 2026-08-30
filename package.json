@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@libsql/client": "^0.15.0",
+    "@sendgrid/mail": "^8.1.6",
     "dotenv": "^16.4.7",
     "twilio-agent-connect": "^2.0.1"
   },

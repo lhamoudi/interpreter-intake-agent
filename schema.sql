@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS requests (
   industry             TEXT,                       -- 'medical' | 'legal' | 'community' | null
   urgency              TEXT,                       -- 'now' | 'scheduled'
   callback_number      TEXT,
+  service_tier         TEXT,                       -- 'ai' | 'human' | 'video' | null
   notes                TEXT,                       -- free-text "what matters most"
   raw_intake           TEXT,                       -- full JSON snapshot
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),

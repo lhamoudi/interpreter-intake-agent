@@ -15,10 +15,12 @@ import { TOOLS } from './tools.js';
 import { switchLanguage, isSupported } from './language.js';
 import {
   type IntakeRecord,
+  type ServiceTier,
   checkComplete,
   mergeIntake,
   summarize,
 } from './intake.js';
+import { deflectToVideoRoom } from './deflection.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -56,14 +58,32 @@ function baseSystemPrompt(): string {
     '  - whether they prefer a male or female interpreter, or have no preference',
     '  - whether they need someone right now or are scheduling for later',
     '  - the best callback number',
-    '  - optionally the subject area (medical, legal, community) and anything else that matters',
+    '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
+    '    community. Ask what the call is about (for example a doctor visit, a court or legal',
+    '    matter, or something else) and map their answer to medical, legal, or community. This is',
+    '    helpful but NOT required — if they are unsure or would rather not say, do not press; move on.',
+    '  - anything else that matters most to them (open text — capture as notes)',
+    '',
+    'Once you have all the required details and have confirmed them, offer the caller three ways',
+    'to be served, briefly and naturally (do not lecture — a sentence is enough):',
+    '  1. An AI interpreter can help right at low cost, on this call.',
+    '  2. A professional human interpreter can call them back — higher cost, best for sensitive',
+    '     or complex situations.',
+    '  3. We can email them a link to join a video session — voice or video, and they can share',
+    '     their screen or a document like a form or letter. Also lower cost than a phone interpreter.',
+    'When they pick one, call choose_service_tier with their choice. For the video option you must',
+    'have their email address — ask for it if you don\'t have it, then pass it to choose_service_tier',
+    '(the link is emailed, not texted). The system will set up the video session (for video), or you',
+    'should call request_handoff (for human, or if AI/video is unavailable and it falls back).',
     '',
     'Rules:',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
     '  - If the caller is clearly more comfortable in another language, call set_language.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
-    '  - Confirm the collected details back before you finish.',
-    '  - When you have everything, call request_handoff. If it reports missing fields, ask for them.',
+    '  - Confirm the collected details back before you offer the service options.',
+    '  - Do not offer the service options until every required detail is collected.',
+    '  - After choose_service_tier: for "video", tell them to watch for the text; for "human"',
+    '    (or a fallback), call request_handoff. If request_handoff reports missing fields, ask.',
     '  - You are speaking aloud. No markdown, asterisks, bullets, or emojis. Keep replies to a',
     '    sentence or two, plain and calm.',
     '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
@@ -247,6 +267,89 @@ async function dispatchTool(
       const switched = switchLanguage(deps.voice, deps.conversationId, language);
       log.info({ conversationId, tool: 'set_language', language, ok: switched }, 'tool call');
       return JSON.stringify({ ok: switched, language });
+    }
+
+    case 'choose_service_tier': {
+      const input = block.input as { tier?: string; email?: string };
+      const tier = input.tier as ServiceTier | undefined;
+      if (input.email) state.intake.email = input.email.trim();
+      const { complete, missing } = checkComplete(state.intake);
+      if (!complete) {
+        // Don't let the caller be routed before the intake is actually complete.
+        log.info(
+          { conversationId, tool: 'choose_service_tier', tier, complete: false, missing },
+          'tool call',
+        );
+        return JSON.stringify({
+          ok: false,
+          reason: 'Intake is not complete yet; collect the missing details first.',
+          missing,
+        });
+      }
+      if (tier !== 'ai' && tier !== 'human' && tier !== 'video') {
+        return JSON.stringify({ ok: false, reason: `Unknown tier "${tier}".` });
+      }
+      state.intake.serviceTier = tier;
+
+      if (tier === 'video') {
+        // Email the caller a Video Room join link (SMS is 10DLC-gated).
+        if (!state.intake.email) {
+          return JSON.stringify({
+            ok: false,
+            reason: 'Need the caller\'s email to send the video link. Ask for it, then call again.',
+          });
+        }
+        const result = await deflectToVideoRoom(conversationId, state.intake.email);
+        if (result.ok) {
+          await finalizeComplete(state, deps); // persist + remember, tier recorded
+          log.info({ conversationId, tool: 'choose_service_tier', tier, videoOk: true }, 'tool call');
+          return JSON.stringify({
+            ok: true,
+            tier,
+            action: 'video_link_sent',
+            message: 'Video session created and join link emailed to the caller.',
+          });
+        }
+        // Video setup failed — fall back to a human callback rather than dead-end.
+        state.intake.serviceTier = 'human';
+        log.warn(
+          { conversationId, tool: 'choose_service_tier', tier, videoOk: false, reason: result.reason },
+          'video deflection failed, falling back to human',
+        );
+        return JSON.stringify({
+          ok: false,
+          tier: 'human',
+          action: 'fallback_to_human',
+          reason: result.reason,
+          message:
+            'Could not set up the video session. Tell the caller you will have a human ' +
+            'interpreter call them back instead, then call request_handoff.',
+        });
+      }
+
+      if (tier === 'ai') {
+        // Live AI interpretation is roadmap, not a built operating mode. Offer it
+        // as chosen, but route to a human so the caller is never stranded.
+        state.intake.serviceTier = 'human';
+        log.info({ conversationId, tool: 'choose_service_tier', tier: 'ai', fallback: 'human' }, 'tool call');
+        return JSON.stringify({
+          ok: true,
+          tier: 'ai',
+          action: 'fallback_to_human',
+          message:
+            'AI live interpretation is not available yet on this line. Let the caller know a ' +
+            'human interpreter will call them back shortly, then call request_handoff.',
+        });
+      }
+
+      // tier === 'human'
+      log.info({ conversationId, tool: 'choose_service_tier', tier: 'human' }, 'tool call');
+      return JSON.stringify({
+        ok: true,
+        tier: 'human',
+        action: 'proceed_to_handoff',
+        message: 'Proceed to call request_handoff to secure the human interpreter callback.',
+      });
     }
 
     case 'request_handoff': {

@@ -95,8 +95,8 @@ export async function saveRequest(params: {
   const { id, conversationId, callerHash, status, record: r } = params;
   await db().execute({
     sql: `INSERT INTO requests (id, conversation_id, caller_hash, status, source_language, target_language,
-             gender_preference, industry, urgency, callback_number, notes, raw_intake, completed_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'complete' THEN datetime('now') ELSE NULL END)`,
+             gender_preference, industry, urgency, callback_number, service_tier, notes, raw_intake, completed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'complete' THEN datetime('now') ELSE NULL END)`,
     args: [
       id,
       conversationId,
@@ -108,6 +108,7 @@ export async function saveRequest(params: {
       r.industry ?? null,
       r.urgency ?? null,
       r.callbackNumber ?? null,
+      r.serviceTier ?? null,
       r.notes ?? null,
       JSON.stringify(r),
       status,
@@ -118,7 +119,7 @@ export async function saveRequest(params: {
 /** Read-back for the coordinator dashboard (GET /requests). */
 export async function listRequests(limit = 50): Promise<Record<string, unknown>[]> {
   const res = await db().execute({
-    sql: 'SELECT id, conversation_id, status, source_language, target_language, gender_preference, industry, urgency, callback_number, notes, created_at, completed_at FROM requests ORDER BY created_at DESC LIMIT ?',
+    sql: 'SELECT id, conversation_id, status, source_language, target_language, gender_preference, industry, urgency, callback_number, service_tier, notes, created_at, completed_at FROM requests ORDER BY created_at DESC LIMIT ?',
     args: [limit],
   });
   return res.rows as unknown as Record<string, unknown>[];

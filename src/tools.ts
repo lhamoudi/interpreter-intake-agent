@@ -29,7 +29,11 @@ export const RECORD_INTAKE: Anthropic.Tool = {
       industry: {
         type: 'string',
         enum: ['medical', 'legal', 'community'],
-        description: 'Subject area, if the caller indicates one. Optional.',
+        description:
+          'Subject area for interpreter matching. Map the caller\'s answer: healthcare / doctor / ' +
+          'hospital / clinic / pharmacy → "medical"; court / lawyer / immigration / police / legal ' +
+          'paperwork → "legal"; anything else (school, housing, benefits, utilities, general) → ' +
+          '"community". Optional — omit if the caller is unsure or declines.',
       },
       urgency: {
         type: 'string',
@@ -58,13 +62,54 @@ export const SET_LANGUAGE: Anthropic.Tool = {
   },
 };
 
+export const CHOOSE_SERVICE_TIER: Anthropic.Tool = {
+  name: 'choose_service_tier',
+  description:
+    'Record which service option the caller chose after you have offered them the three ' +
+    'ways to be served. Only call this once you have all required intake details and have ' +
+    'presented the options and the caller has picked one. The options, with their tradeoffs:\n' +
+    '  - "ai": an AI interpreter can assist right now on this call — the lowest-cost option.\n' +
+    '  - "human": a professional human interpreter calls them back — higher cost, best for ' +
+    'sensitive or complex matters.\n' +
+    '  - "video": we email them a link to join a video session, where they can use voice or ' +
+    'video and share their screen or documents (for example a paper form or letter). This is ' +
+    'also lower cost than a phone interpreter.\n' +
+    'For "video", you MUST also pass the caller\'s email (the link is sent by email, not text); ' +
+    'ask for it if you do not have it. For "human" the system secures the callback. Report the ' +
+    'chosen tier here.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['tier'],
+    properties: {
+      tier: {
+        type: 'string',
+        enum: ['ai', 'human', 'video'],
+        description: 'The option the caller chose.',
+      },
+      email: {
+        type: 'string',
+        description:
+          "The caller's email address, REQUIRED when tier is \"video\" (the join link is " +
+          'emailed). Omit for other tiers.',
+      },
+    },
+  },
+};
+
 export const REQUEST_HANDOFF: Anthropic.Tool = {
   name: 'request_handoff',
   description:
-    'Secure a human interpreter for this request. Only call this once you believe you ' +
-    'have gathered every required detail and confirmed them with the caller. The system ' +
-    'will validate completeness; if anything is missing it will tell you what to ask for.',
+    'Secure a human interpreter callback for this request. Only call this once you have ' +
+    'gathered every required detail, offered the caller their service options, and they chose ' +
+    'the human-callback option (or an AI/video option that has fallen back to a human). The ' +
+    'system will validate completeness; if anything is missing it will tell you what to ask for.',
   input_schema: { type: 'object', additionalProperties: false, properties: {} },
 };
 
-export const TOOLS: Anthropic.Tool[] = [RECORD_INTAKE, SET_LANGUAGE, REQUEST_HANDOFF];
+export const TOOLS: Anthropic.Tool[] = [
+  RECORD_INTAKE,
+  SET_LANGUAGE,
+  CHOOSE_SERVICE_TIER,
+  REQUEST_HANDOFF,
+];

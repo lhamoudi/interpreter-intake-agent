@@ -12,6 +12,16 @@ export type GenderPreference = 'male' | 'female' | 'no_preference';
 export type Industry = 'medical' | 'legal' | 'community';
 export type Urgency = 'now' | 'scheduled';
 
+/**
+ * How the caller chose to be served, offered once the required intake is complete:
+ *  - 'ai'    — AI interprets the call itself now (cheapest; roadmap, offered but
+ *              actual live AI interpretation is not built — falls back to human).
+ *  - 'human' — a human interpreter calls them back (premium).
+ *  - 'video' — deflect to a Twilio Video Room (WebRTC) via an SMS'd join link
+ *              (good for screensharing / documents; removes PSTN per-minute cost).
+ */
+export type ServiceTier = 'ai' | 'human' | 'video';
+
 /** A single interpreter request, built up slot-by-slot over the call. */
 export interface IntakeRecord {
   /** Language the caller speaks (BCP-47 or plain name as heard). */
@@ -25,6 +35,14 @@ export interface IntakeRecord {
   callbackNumber?: string;
   /** Free text: "what matters most" — context for the interpreter. */
   notes?: string;
+  /** Which service tier the caller chose (set at deflection, after core intake). */
+  serviceTier?: ServiceTier;
+  /**
+   * Email for the video-session join link. Collected ONLY on the video tier
+   * (SMS is blocked by A2P 10DLC on this account). In the production vision this
+   * comes from the member's registered profile — see WRITEUP.
+   */
+  email?: string;
 }
 
 /**

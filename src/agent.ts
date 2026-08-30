@@ -12,7 +12,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'node:crypto';
 import { createLogger, maskPhone, type VoiceChannel, type ConversationId } from 'twilio-agent-connect';
 import { TOOLS } from './tools.js';
-import { switchLanguage, isSupported } from './language.js';
+import { switchLanguage, isSupported, isEnglish, canonicalLanguage } from './language.js';
 import {
   type IntakeRecord,
   type ServiceTier,
@@ -92,6 +92,9 @@ function baseSystemPrompt(): string {
     'Rules:',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
     '  - If the caller is clearly more comfortable in another language, call set_language.',
+    '  - If the caller ASKS to switch language — in any language, e.g. "English", "anglais",',
+    '    "inglés", "en français" — call set_language with that language. Supported: English,',
+    '    Spanish, French. After switching, continue entirely in the new language.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
     '  - Confirm the collected details back before you offer the service options.',
     '  - Do not offer the service options until every required detail is collected.',
@@ -189,9 +192,8 @@ export async function initCall(conversationId: string, callerAddress: string | u
   // in the TwiML (see index.ts), so seed activeLanguage to keep the model writing
   // in it from the first turn.
   const presetLang =
-    memory?.sourceLanguage && isSupported(memory.sourceLanguage) &&
-    memory.sourceLanguage.trim().toLowerCase() !== 'english'
-      ? memory.sourceLanguage
+    memory?.sourceLanguage && isSupported(memory.sourceLanguage) && !isEnglish(memory.sourceLanguage)
+      ? (canonicalLanguage(memory.sourceLanguage) ?? memory.sourceLanguage)
       : null;
 
   calls.set(conversationId, {
@@ -318,9 +320,10 @@ async function dispatchTool(
       }
       const switched = switchLanguage(deps.voice, deps.conversationId, language);
       // Switching the voice/STT is not enough — record it so languagePreamble
-      // makes the model WRITE in this language too (English is null = no preamble).
+      // makes the model WRITE in this language too. Store the canonical English
+      // name (caller may say "anglais"/"inglés"); English = null = no preamble.
       if (switched) {
-        state.activeLanguage = language.trim().toLowerCase() === 'english' ? null : language;
+        state.activeLanguage = isEnglish(language) ? null : (canonicalLanguage(language) ?? language);
       }
       log.info({ conversationId, tool: 'set_language', language, ok: switched }, 'tool call');
       return JSON.stringify({ ok: switched, language });

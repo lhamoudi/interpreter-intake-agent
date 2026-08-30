@@ -34,10 +34,20 @@ interface LangCodes {
   voice: string;
 }
 
+const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: 'Google', voice: 'en-US-Neural2-C' };
+const ES: LangCodes = { transcription: 'es-US', tts: 'es-US', ttsProvider: 'Google', voice: 'es-US-Neural2-A' };
+const FR: LangCodes = { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: 'Google', voice: 'fr-FR-Neural2-F' };
+
+/**
+ * Language name → codes. Keyed by the English name AND the endonym/other-language
+ * names a caller might use, so "switch to English" works when the caller says it
+ * in their own language ("anglais", "inglés"). All aliases for one language map
+ * to the same LangCodes.
+ */
 const LANGUAGES: Record<string, LangCodes> = {
-  english: { transcription: 'en-US', tts: 'en-US', ttsProvider: 'Google', voice: 'en-US-Neural2-C' },
-  spanish: { transcription: 'es-US', tts: 'es-US', ttsProvider: 'Google', voice: 'es-US-Neural2-A' },
-  french: { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: 'Google', voice: 'fr-FR-Neural2-F' },
+  english: EN, anglais: EN, ingles: EN, 'inglés': EN, englisch: EN,
+  spanish: ES, espanol: ES, 'español': ES, espagnol: ES,
+  french: FR, francais: FR, 'français': FR, frances: FR, 'francés': FR,
 };
 
 export function resolveLanguage(name: string | undefined): LangCodes | undefined {
@@ -64,6 +74,18 @@ export function isSupported(name: string | undefined): boolean {
   return resolveLanguage(name) !== undefined;
 }
 
+/** Canonical English name for a language (any alias in), for prompt text. */
+const CANONICAL: Record<string, string> = { 'en-US': 'English', 'es-US': 'Spanish', 'fr-FR': 'French' };
+export function canonicalLanguage(name: string | undefined): string | undefined {
+  const codes = resolveLanguage(name);
+  return codes ? CANONICAL[codes.tts] : undefined;
+}
+
+/** True if the name resolves to English (any alias). */
+export function isEnglish(name: string | undefined): boolean {
+  return resolveLanguage(name)?.tts === 'en-US';
+}
+
 /**
  * The non-English locales we support, as ConversationRelay `<Language>` child
  * declarations for the initial TwiML (`defaultTwimlOptions.languages`). Each
@@ -73,9 +95,14 @@ export function isSupported(name: string | undefined): boolean {
  * the parent default and is NOT re-declared here. A mid-call switch to one of
  * these locales then has a real voice to use.
  */
-export const SUPPORTED_LANGUAGE_DECLARATIONS = Object.values(LANGUAGES)
-  .filter((c) => c.tts !== 'en-US')
-  .map((c) => ({ code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice }));
+export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
+  // Dedup by tts code — LANGUAGES has multiple name aliases per locale.
+  new Map(
+    Object.values(LANGUAGES)
+      .filter((c) => c.tts !== 'en-US')
+      .map((c) => [c.tts, { code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice }]),
+  ).values(),
+);
 
 /**
  * Switch the live call's STT/TTS language by sending a ConversationRelay

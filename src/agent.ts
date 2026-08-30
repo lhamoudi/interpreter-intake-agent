@@ -21,7 +21,7 @@ import {
   summarize,
 } from './intake.js';
 import { deflectToVideoRoom } from './deflection.js';
-import { buildHandoffData, notifyDutyInterpreter } from './handoff.js';
+import { buildHandoffData } from './handoff.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -416,24 +416,17 @@ async function finalizeComplete(
     log.error({ conversationId, err }, 'failed to persist completed intake');
   }
 
-  if (notifyHuman) {
-    // Primary handoff: set the TAC voice-handoff payload on the live session.
-    // The voice channel emits the ConversationRelay `end` with it after the
-    // final reply; if a Studio Flow is configured (TWILIO_STUDIO_HANDOFF_FLOW_SID)
-    // ConversationRelay triggers it and it routes the call into Flex via
-    // TaskRouter, carrying this lead context.
-    if (deps.session) {
-      deps.session.pendingHandoffData = {
-        type: 'end',
-        handoffData: buildHandoffData(conversationId, state.intake),
-      };
-      log.info({ conversationId }, 'handoff payload set on session (voice end → Studio/Flex)');
-    }
-    // Fallback only: if no Studio Flow is configured, email the duty interpreter
-    // so a lead is never dropped. With Flex wired, this stays dormant.
-    if (!process.env.TWILIO_STUDIO_HANDOFF_FLOW_SID) {
-      await notifyDutyInterpreter(conversationId, state.intake);
-    }
+  if (notifyHuman && deps.session) {
+    // Human handoff: set the TAC voice-handoff payload on the live session. The
+    // voice channel emits the ConversationRelay `end` with it after the final
+    // reply; TWILIO_STUDIO_HANDOFF_FLOW_SID makes TAC wire the `<Connect action>`
+    // URL to that Studio Flow, which routes the call into Flex via TaskRouter,
+    // carrying this lead context.
+    deps.session.pendingHandoffData = {
+      type: 'end',
+      handoffData: buildHandoffData(conversationId, state.intake),
+    };
+    log.info({ conversationId }, 'handoff payload set on session (voice end → Studio/Flex)');
   }
 }
 

@@ -1,14 +1,12 @@
 /**
  * Smoke test for the human-handoff path. Needs ANTHROPIC_API_KEY.
  *
- * Verifies two things on the human-callback tier:
- *   1. session.pendingHandoffData is set (TAC voice-only handoff wire mechanism).
- *   2. the duty interpreter is emailed — gated behind LIVE_HANDOFF=1 so a routine
- *      run doesn't send mail. Set DUTY_INTERPRETER_EMAIL + SENDGRID_* for a live
- *      run.
+ * Verifies that on the human-callback tier, session.pendingHandoffData is set
+ * with the full lead context — the TAC voice-only handoff wire mechanism that
+ * ConversationRelay delivers to the Studio Flow (→ Flex). The actual Flex
+ * routing lives in the Studio Flow and is exercised on a live call.
  *
- * Run:  npx tsx src/smoke/handoff.ts
- *       LIVE_HANDOFF=1 DUTY_INTERPRETER_EMAIL=you@example.com npx tsx src/smoke/handoff.ts
+ * Run: npx tsx src/smoke/handoff.ts
  */
 
 import 'dotenv/config';
@@ -19,11 +17,6 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set.');
   process.exit(1);
-}
-const live = process.env.LIVE_HANDOFF === '1';
-if (!live) {
-  // Avoid a real duty-interpreter email on a routine run.
-  delete process.env.DUTY_INTERPRETER_EMAIL;
 }
 
 const fakeVoice = { getWebsocket: () => null } as unknown as VoiceChannel;
@@ -39,7 +32,6 @@ const turns = [
 ];
 
 async function main() {
-  console.log(`(mode: ${live ? 'LIVE — will email the duty interpreter' : 'dry — no email'})`);
   await initCall(conversationId as unknown as string, '+13125551212');
 
   for (const [i, turn] of turns.entries()) {

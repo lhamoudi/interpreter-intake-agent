@@ -100,8 +100,14 @@ export async function deflectToVideoRoom(
       emptyRoomTimeout: 30, // minutes; auto-clean if nobody joins
     });
 
+    // The room is real; the join PAGE is intentionally not built (the assignment
+    // lists UI as an explicit non-goal). VIDEO_JOIN_BASE_URL is a placeholder, so
+    // the link is well-formed and carries the real room name but has no page to
+    // land on yet. Wiring a minimal Twilio Video JS join page + token endpoint is
+    // the documented next step — see WRITEUP.
     const base = process.env.VIDEO_JOIN_BASE_URL ?? 'https://video.example.com/join';
     const joinUrl = `${base}?room=${encodeURIComponent(room.uniqueName)}`;
+    const isPlaceholder = base.includes('video.example.com');
 
     initSendgrid();
     await sgMail.send({
@@ -111,11 +117,20 @@ export async function deflectToVideoRoom(
       text:
         'Your interpreter video session is ready.\n\n' +
         `Join here (voice or video, and you can share your screen or documents): ${joinUrl}\n\n` +
+        (isPlaceholder
+          ? '(Demo note: the video session room is real, but the join page itself is not built ' +
+            'in this prototype, so this link will not open a live session yet.)\n\n'
+          : '') +
         'This link is good for the next little while. See you there.',
       html:
         '<p>Your interpreter video session is ready.</p>' +
         `<p><a href="${joinUrl}">Join your session</a> — voice or video, and you can share ` +
-        'your screen or documents.</p>',
+        'your screen or documents.</p>' +
+        (isPlaceholder
+          ? '<p style="color:#888;font-size:12px">Demo note: the video session room is real, but ' +
+            'the join page itself is not built in this prototype, so this link will not open a ' +
+            'live session yet.</p>'
+          : ''),
     });
 
     log.info(

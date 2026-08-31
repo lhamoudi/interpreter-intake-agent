@@ -104,28 +104,33 @@ tested by ear on real calls.
 - **Horizontal scale.** Today each call's state lives in a plain in-memory map inside the one
   Node process (`const calls` in `agent.ts`), which is correct only because I run exactly one
   machine. Add a second machine and the state is trapped on whichever one first answered the
-  call — any other machine has amnesia for it. To scale, each call's state moves to its own
-  addressable per-call unit keyed by `CallSid` (a Cloudflare Durable Object, or an
-  actor-per-call in an Akka/Orleans sense), so any node can look it up and serve any socket.
-  Naming the fix is the point here; actually building horizontal scale would be over-engineering
-  a take-home that one machine handles comfortably.
-- **Hardening** the explicit non-goals: webhook signature validation is on, but I'd add
-  structured retries around Turso, rate limiting, and proper secret rotation.
+  call — any other machine has amnesia. To scale, each call's state moves to its own
+  addressable per-call unit keyed by `CallSid` (a Cloudflare Durable Object), so any node can 
+  look it up and serve any socket. 
+- **Hardening** — the brief lists this as a non-goal, so I scoped it deliberately. The one
+  control I kept on is **Twilio webhook signature validation** (the public `/twiml` endpoint
+  rejects any request not signed by Twilio — non-negotiable even for a prototype). For
+  production I'd add: **retries with backoff around Turso** so a transient network blip never
+  drops a completed interpreter request (today a DB failure is caught and logged, best-effort);
+  **rate limiting** per caller/IP on the public endpoints to cap abuse and runaway Twilio /
+  Anthropic / Turso spend; and **secret rotation** — the API keys are set-once in Fly secrets
+  today, and would move to short-lived, rotatable credentials in a secrets manager.
 - **Deliverability** for the video email (SPF/DKIM on the sending domain — it currently lands
   in spam as a fresh sender), and real toll-free/10DLC registration to unlock SMS.
 
 ## What surprised me / got stuck on
 
 - **A2P 10DLC blocked SMS outright** (error 30034) the moment I tried to text the video link
-  from a local number. That single carrier-compliance fact reshaped two features: the video
-  link moved to **email**, and the whole cross-channel bonus became gated on toll-free
-  verification. It's the clearest reminder that on telephony, compliance is architecture.
+  from a local number. 10DLC or toll-free verification would have required more time and effort than
+  the take-home hours afforded. As a result, the video room link sharing moved to **email**, and the 
+  whole cross-channel bonus (**Conversation Orchstrator**) was also gated. 
 - **Mid-call language switching was a rabbit hole.** `set_language` sent the exact message
   Twilio documents and ConversationRelay accepted the STT switch — but the TTS stayed English
-  because the stock TwiML declared no `<Language>` voice for the target locale; declaring one
-  with a bare `code` then broke the call entirely; and even once the voice switched, the model
-  kept *writing* English (accent changed, words didn't). Each layer was a separate fix. It
-  worked, but it was fragile enough that I ultimately cut it to keep the core solid — a
-  deliberate "two working features beat five broken ones" call.
-- **Voice-only mode changes the handoff API.** The obvious `createStudioHandoffTool` throws in
-  voice-only mode; the correct path (`pendingHandoffData`) is different and worth knowing.
+  because the stock TwiML declared no `<Language>` voice for the target locale. I debugged and 
+  made good progress, but ultimately it was deemed too much of a mini-project in its own right, and so
+  was parked. It's clearly very doable though. 
+- **Voice-only mode changes the handoff API.** The obvious (and well-documented) 
+`createStudioHandoffTool` helper throws an error in voice-only mode. The correct path was found to be 
+setting a `pendingHandoffData` value on the session - which tells TAC's voice channel to emit a 
+ConversationRelay `end` message with the data (which is then POSTed to the `<Connect action>` URL/
+Studio flow)

@@ -33,12 +33,15 @@ overflow network downstream.
   WebSocket loop, TwiML, ASR/TTS and session lifecycle; I drive its `onMessageReady`
   callback. Running the *stock* `TACServer` unmodified was a deliberate choice — it kept
   the surface I own small and removed a whole class of porting risk (see "what I'd change").
-- **ConversationRelay `<Connect action>` → Studio Flow → Flex** for the human handoff. TAC
-  is in voice-only mode, where its built-in `createStudioHandoffTool` isn't available, so I
-  use the documented voice-only path: set `session.pendingHandoffData`, and TAC emits the
-  WebSocket `end` message that triggers the Studio Flow, which sends the live call into Flex
-  as a task carrying the full intake context.
-- **Twilio Flex** 
+- **Studio Flow → Flex** for the human handoff — a **live transfer**, not a message to a queue:
+  the caller stays on the line and is connected to an interpreter who accepts the task in Flex,
+  with the captured intake riding along as **task attributes** so they don't re-qualify the
+  caller. The mechanism is a voice-only-mode subtlety worth knowing: TAC's convenience helper
+  `createStudioHandoffTool` throws in voice-only mode (it needs Conversation Orchestrator), so I
+  use the documented path — set `session.pendingHandoffData` (`buildHandoffData` in
+  `src/handoff.ts`); TAC emits a ConversationRelay `end` message that ConversationRelay POSTs to
+  the `<Connect action>` URL, wired to the "TAC Handoff to Agent" Studio Flow, whose Send-to-Flex
+  widget creates the TaskRouter task.
 - **Twilio Video** for the deflection tier — a real WebRTC room created per request.
 - **SendGrid** (Twilio-owned) to email the video join link.
 - **DTMF + speech** via ConversationRelay config (spoken ten-digit strings transcribe badly).
@@ -70,30 +73,6 @@ or a **video room** whose link is emailed. This models the *customer's unit econ
 video/WebRTC path removes PSTN per-minute cost — which is the kind of tradeoff an interpreter
 network actually optimises. Any failure in the video path falls back to a human rather than
 dead-ending the caller.
-
-## Human handoff into Flex
-
-The human tier is a **live transfer into Twilio Flex**, not a message to a queue — the caller
-stays on the line and is connected to an interpreter who accepts the task in the Flex UI. The
-mechanism is worth calling out because it's a voice-only-mode subtlety:
-
-1. On `request_handoff`, the server sets `session.pendingHandoffData` with the full lead
-   context (`buildHandoffData` in `src/handoff.ts`).
-2. TAC's voice channel emits a ConversationRelay **`end`** message carrying that data after the
-   agent's final reply.
-3. ConversationRelay POSTs it to the `<Connect action>` URL, which is wired to a **Studio Flow**
-   (the "TAC Handoff to Agent" template).
-4. The Flow's **Send to Flex** widget creates a TaskRouter task and routes the live call to an
-   available agent.
-
-The captured intake travels as **task attributes**, so the interpreter sees the request context
-(language pair, gender, subject) on the incoming task rather than re-qualifying the caller. The
-subtlety: TAC's convenience helper `createStudioHandoffTool` **is not available in voice-only
-mode** (it requires Conversation Orchestrator) — it throws. The documented voice-only path is the
-`pendingHandoffData` mechanism above, which is a different shape (set a property, not call a
-helper) and easy to miss. Since the customer already runs an interpreter Flex plugin, the
-production step is mapping these attributes onto its existing display fields — a config task, not
-a rebuild.
 
 ## What I built with agentic coding, and how I planned it
 

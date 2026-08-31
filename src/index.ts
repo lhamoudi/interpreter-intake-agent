@@ -12,6 +12,7 @@ import path from 'node:path';
 import { TAC, TACConfig, VoiceChannel, TACServer, createLogger } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
+import { returningGreeting, twimlPresetFor, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DECK_PATH = path.join(__dirname, '..', 'public', 'deck.html');
@@ -22,8 +23,13 @@ const BRIEF_PATH = path.join(__dirname, '..', 'private', 'fde-take-home-brief.pd
 
 const log = createLogger({ name: 'server' });
 
+// Trilingual invitation: the agent can converse in English, Spanish, or French,
+// and detects which the caller uses from their first reply. Spoken by the base
+// English voice until the first utterance is classified.
 const NEW_CALLER_GREETING =
-  "Thanks for calling. I can connect you with an interpreter. What language do you need one for?";
+  'Thanks for calling. I can connect you with an interpreter — you can speak to me in English, ' +
+  'Spanish, or French. Puede hablarme en español. Vous pouvez me parler en français. ' +
+  'How can I help you today?';
 
 async function main() {
   const config = TACConfig.fromEnv();
@@ -40,22 +46,34 @@ async function main() {
   }
 
   const voiceChannel = new VoiceChannel(tac, {
-    defaultTwimlOptions: { welcomeGreeting: NEW_CALLER_GREETING },
+    defaultTwimlOptions: {
+      welcomeGreeting: NEW_CALLER_GREETING,
+      // Declare every supported locale as a <Language> child WITH a voice, so a
+      // mid-call switch to any of them has a voice to use (a bare declaration or
+      // an undeclared locale silently keeps TTS on English).
+      languages: SUPPORTED_LANGUAGE_DECLARATIONS,
+    },
   });
 
-  // Greet a returning caller warmly before the first agent turn, using the number
-  // in hand at answer time. (The agent operates in English; the caller's spoken
-  // language is captured as intake data for the interpreter, not used to switch
-  // the bot's own TTS.)
+  // Greet a returning caller before the first agent turn, using the number in
+  // hand at answer time. If we know the language they last spoke to us in, greet
+  // them in it AND preset the STT/TTS voice so the first word is already in their
+  // language. Every return re-declares `languages` — the array replaces wholesale,
+  // so omitting it would drop the <Language> children and revert TTS to English.
   voiceChannel.onInboundCallTwiml(async (req) => {
     const memory = await lookupCallerByAddress(req.from);
     if (memory && memory.callCount > 0) {
+      const localizedWelcome = returningGreeting(memory.callerLanguage);
+      const preset = twimlPresetFor(memory.callerLanguage);
       return {
+        languages: SUPPORTED_LANGUAGE_DECLARATIONS,
         welcomeGreeting:
+          localizedWelcome ??
           'Welcome back! I can help you set up an interpreter again. What do you need today?',
+        ...(preset ?? {}),
       };
     }
-    return { welcomeGreeting: NEW_CALLER_GREETING };
+    return { languages: SUPPORTED_LANGUAGE_DECLARATIONS, welcomeGreeting: NEW_CALLER_GREETING };
   });
 
   tac.registerChannel(voiceChannel);
@@ -63,7 +81,7 @@ async function main() {
   tac.onMessageReady(async ({ conversationId, message, session }) => {
     // Seed caller memory from the real PSTN address the first time we see this call.
     await initCall(conversationId as string, session.authorInfo?.address);
-    return runAgent(message, { conversationId, session });
+    return runAgent(message, { conversationId, session, voice: voiceChannel });
   });
 
   tac.onConversationEnded(async ({ session }) => {

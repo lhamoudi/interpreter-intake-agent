@@ -10,8 +10,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'node:crypto';
-import { createLogger, type ConversationId } from 'twilio-agent-connect';
+import { createLogger, type ConversationId, type VoiceChannel } from 'twilio-agent-connect';
 import { TOOLS } from './tools.js';
+import { canonicalLanguage, resolveLanguage, switchAck, switchLanguage } from './language.js';
 import {
   type IntakeRecord,
   type ServiceTier,
@@ -43,6 +44,13 @@ interface CallState {
   handoffDone: boolean;
   declined: boolean;
   persisted: boolean;
+  /**
+   * The language the CALLER is currently speaking to the agent (canonical name:
+   * "English" | "Spanish" | "French"), or null while undetermined / English.
+   * Drives the bot's own reply language and the mid-call STT/TTS switch. Distinct
+   * from intake.sourceLanguage (the third party) and intake.targetLanguage.
+   */
+  activeLanguage: string | null;
 }
 
 const calls = new Map<string, CallState>();
@@ -53,10 +61,19 @@ function baseSystemPrompt(): string {
     'A caller needs a human interpreter. Your job is to warmly and efficiently collect',
     'the details needed to secure the right interpreter, then hand off to a human.',
     '',
+    'You can speak with the caller in English, Spanish, or French. Detect which of these the',
+    'caller is speaking to you FROM THEIR WORDS, and call set_caller_language with it — on your',
+    'very first turn, and again any time they switch language mid-call. Then speak to them in that',
+    'language for the rest of your reply. The language the caller speaks to YOU is their own',
+    'language, which is also the language their third party should be interpreted INTO',
+    '(targetLanguage) — default targetLanguage to it and simply confirm, do not ask it cold.',
+    '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
-    '  - which language the caller needs an interpreter for (their language), interpreted INTO',
-    '    English by default. Record it as sourceLanguage; default targetLanguage to English unless',
-    '    they say otherwise. You yourself speak English throughout.',
+    '  - which language the caller needs an interpreter FOR — this is the language of the OTHER',
+    '    person (their patient, client, or whoever they are trying to talk to), NOT the language',
+    '    the caller is speaking to you. Ask for it and record it as sourceLanguage. For example a',
+    '    caller speaking to you in English who needs to talk to a Spanish-speaking patient has',
+    '    sourceLanguage "Spanish", targetLanguage "English".',
     '  - whether they prefer a male or female interpreter, or have no preference',
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
@@ -135,6 +152,22 @@ function memoryPreamble(memory: CallerMemory | null): string {
   );
 }
 
+/**
+ * Per-turn directive keeping the model's SPOKEN replies in the caller's language.
+ * Empty for English (the base) — no directive needed. Injected into the system
+ * prompt every turn, so it tracks `state.activeLanguage` as it changes.
+ */
+function languagePreamble(activeLanguage: string | null): string {
+  if (!activeLanguage || activeLanguage === 'English') return '';
+  return (
+    `\n\nThis caller is being served in ${activeLanguage}. Write EVERY reply to them entirely ` +
+    `in ${activeLanguage} — every word you speak aloud. Only the words you SAY change; the values ` +
+    'you put in tool fields stay as normal English data (e.g. record the third party\'s language ' +
+    'as "Spanish", industry as "medical"). If the caller switches to another language, call ' +
+    'set_caller_language again and follow it.'
+  );
+}
+
 /** Look up returning-caller memory and seed the intake with what we know. */
 export async function initCall(conversationId: string, callerAddress: string | undefined): Promise<void> {
   if (calls.has(conversationId)) return;
@@ -160,6 +193,11 @@ export async function initCall(conversationId: string, callerAddress: string | u
       }
     : {};
 
+  // A returning caller whose spoken language we know starts the call already in
+  // that language (the TwiML customizer also preset the STT/TTS voice). A new
+  // caller starts undetermined — the first utterance sets it.
+  const seededLanguage = memory ? canonicalLanguage(memory.callerLanguage) ?? null : null;
+
   calls.set(conversationId, {
     history: [],
     intake: seed,
@@ -168,6 +206,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
     handoffDone: false,
     declined: false,
     persisted: false,
+    activeLanguage: seededLanguage,
   });
 }
 
@@ -180,6 +219,12 @@ interface Deps {
    * smoke tests without a real session still run.
    */
   session?: { pendingHandoffData?: { type?: 'end'; handoffData: string } };
+  /**
+   * The voice channel, when present (real calls). Used to send the mid-call
+   * ConversationRelay `language` control message on a caller-language switch.
+   * Optional so smoke tests can pass a stub or omit it.
+   */
+  voice?: VoiceChannel;
 }
 
 /** Run one caller turn. Returns the text to speak back. */
@@ -190,14 +235,16 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
 
   state.history.push({ role: 'user', content: userMessage });
 
-  const system = baseSystemPrompt() + memoryPreamble(state.memory);
-
   // Tool loop: Claude may speak AND call a tool in the same hop (a text block
   // alongside tool_use blocks) — that spoken text must not be dropped just
   // because the turn isn't done yet. Accumulate text across every hop and
   // return it all once the turn ends, rather than only reading the final hop.
   const spoken: string[] = [];
   for (let hop = 0; hop < 6; hop++) {
+    // Rebuilt each hop so a mid-turn set_caller_language switch reaches the
+    // model on its very next hop, not just the next turn.
+    const system =
+      baseSystemPrompt() + memoryPreamble(state.memory) + languagePreamble(state.activeLanguage);
     const res = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
@@ -257,6 +304,48 @@ async function dispatchTool(
   const conversationId = deps.conversationId as string;
 
   switch (block.name) {
+    case 'set_caller_language': {
+      const { language } = block.input as { language?: string };
+      const codes = resolveLanguage(language);
+      if (!codes || !language) {
+        return JSON.stringify({ ok: false, reason: `Unsupported language "${language}".` });
+      }
+      const canonical = canonicalLanguage(language)!;
+      const prev = state.activeLanguage;
+      const prevCodes = resolveLanguage(prev ?? 'English');
+      const changed = codes.tts !== prevCodes?.tts;
+
+      // Default the interpreter's target language to the caller's own language,
+      // unless the caller has already stated a different target.
+      if (!state.intake.targetLanguage) state.intake.targetLanguage = canonical;
+
+      if (!changed) {
+        // No-op: same language as we're already on. Send nothing (anti-thrash).
+        log.info({ conversationId, tool: 'set_caller_language', language: canonical, changed: false }, 'tool call');
+        return JSON.stringify({ ok: true, language: canonical, changed: false });
+      }
+
+      state.activeLanguage = canonical;
+      let switched = false;
+      if (deps.voice) switched = switchLanguage(deps.voice, deps.conversationId, language);
+      log.info(
+        { conversationId, tool: 'set_caller_language', language: canonical, changed: true, switched },
+        'tool call',
+      );
+      // Same-turn steer: the model reads this tool_result before its next hop, so
+      // instruct it to switch its own spoken language immediately, leading with a
+      // brief acknowledgement in the new language.
+      return JSON.stringify({
+        ok: true,
+        language: canonical,
+        changed: true,
+        speakIn: canonical,
+        instruction:
+          `Reply to the caller entirely in ${canonical} from now on. Begin your next reply with a ` +
+          `brief acknowledgement in ${canonical}, for example: "${switchAck(language) ?? ''}"`,
+      });
+    }
+
     case 'record_intake': {
       const patch = block.input as Partial<IntakeRecord>;
       state.intake = mergeIntake(state.intake, patch);
@@ -425,7 +514,7 @@ async function finalizeComplete(
       status: 'complete',
       record: state.intake,
     });
-    await rememberCaller(state.callerHash, state.intake);
+    await rememberCaller(state.callerHash, state.intake, state.activeLanguage);
     state.persisted = true;
   } catch (err) {
     log.error({ conversationId, err }, 'failed to persist completed intake');

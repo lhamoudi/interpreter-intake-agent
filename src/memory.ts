@@ -37,6 +37,12 @@ export interface CallerMemory {
   genderPreference?: string;
   industry?: string;
   email?: string;
+  /**
+   * The language the CALLER speaks to the agent (canonical: "English" | "Spanish"
+   * | "French"). Distinct from source/target (the interpreter request). Used to
+   * preset STT/TTS + a localized greeting on their next call.
+   */
+  callerLanguage?: string;
   callCount: number;
 }
 
@@ -59,7 +65,7 @@ export async function lookupCallerByAddress(
 export async function getCallerMemory(callerHash: string | null): Promise<CallerMemory | null> {
   if (!callerHash) return null;
   const res = await db().execute({
-    sql: 'SELECT source_language, target_language, gender_preference, industry, email, call_count FROM callers WHERE caller_hash = ?',
+    sql: 'SELECT source_language, target_language, gender_preference, industry, email, caller_language, call_count FROM callers WHERE caller_hash = ?',
     args: [callerHash],
   });
   const row = res.rows[0];
@@ -70,22 +76,33 @@ export async function getCallerMemory(callerHash: string | null): Promise<Caller
     genderPreference: (row.gender_preference as string) ?? undefined,
     industry: (row.industry as string) ?? undefined,
     email: (row.email as string) ?? undefined,
+    callerLanguage: (row.caller_language as string) ?? undefined,
     callCount: Number(row.call_count ?? 0),
   };
 }
 
-/** Upsert the caller's latest known preferences and bump their call count. */
-export async function rememberCaller(callerHash: string | null, r: IntakeRecord): Promise<void> {
+/**
+ * Upsert the caller's latest known preferences and bump their call count.
+ * `callerLanguage` is the language the caller spoke to the AGENT (EN/ES/FR) — a
+ * separate fact from the source/target on the intake record — used to preset the
+ * voice on their next call.
+ */
+export async function rememberCaller(
+  callerHash: string | null,
+  r: IntakeRecord,
+  callerLanguage?: string | null,
+): Promise<void> {
   if (!callerHash) return;
   await db().execute({
-    sql: `INSERT INTO callers (caller_hash, source_language, target_language, gender_preference, industry, email, call_count, last_seen_at)
-          VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    sql: `INSERT INTO callers (caller_hash, source_language, target_language, gender_preference, industry, email, caller_language, call_count, last_seen_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
           ON CONFLICT(caller_hash) DO UPDATE SET
             source_language = COALESCE(excluded.source_language, source_language),
             target_language = COALESCE(excluded.target_language, target_language),
             gender_preference = COALESCE(excluded.gender_preference, gender_preference),
             industry = COALESCE(excluded.industry, industry),
             email = COALESCE(excluded.email, email),
+            caller_language = COALESCE(excluded.caller_language, caller_language),
             call_count = call_count + 1,
             last_seen_at = datetime('now')`,
     args: [
@@ -95,6 +112,7 @@ export async function rememberCaller(callerHash: string | null, r: IntakeRecord)
       r.genderPreference ?? null,
       r.industry ?? null,
       r.email ?? null,
+      callerLanguage ?? null,
     ],
   });
 }

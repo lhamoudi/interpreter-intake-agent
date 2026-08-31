@@ -23,9 +23,18 @@ export type ServiceTier = 'ai' | 'human' | 'video';
 
 /** A single interpreter request, built up slot-by-slot over the call. */
 export interface IntakeRecord {
-  /** Language the caller speaks (BCP-47 or plain name as heard). */
+  /**
+   * The THIRD PARTY's language — the person the caller needs interpreted (their
+   * patient, client, etc.). Asked, not detected. NOT the language the caller
+   * speaks to the agent (that is the caller-spoken language, tracked separately
+   * on CallState.activeLanguage / callers.caller_language).
+   */
   sourceLanguage?: string;
-  /** Language they need interpreted to (usually English for US OPI). */
+  /**
+   * The language the third party is interpreted INTO — the caller's own language.
+   * Defaults to the caller-spoken language (set_caller_language) and is confirmed,
+   * not asked cold. Was previously always English.
+   */
   targetLanguage?: string;
   genderPreference?: GenderPreference;
   /** Optional — many calls have no industry preference. */

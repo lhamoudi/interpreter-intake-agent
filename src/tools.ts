@@ -19,8 +19,20 @@ export const RECORD_INTAKE: Anthropic.Tool = {
     type: 'object',
     additionalProperties: false,
     properties: {
-      sourceLanguage: { type: 'string', description: 'The language the caller speaks, e.g. "Spanish".' },
-      targetLanguage: { type: 'string', description: 'The language to interpret into. Usually "English".' },
+      sourceLanguage: {
+        type: 'string',
+        description:
+          'The language of the THIRD PARTY the caller needs interpreted — their patient, client, ' +
+          'or the person they are trying to talk to, e.g. "Spanish", "Mandarin". You must ASK for ' +
+          'this; it is NOT the language the caller is speaking to you (that is set_caller_language).',
+      },
+      targetLanguage: {
+        type: 'string',
+        description:
+          'The language the third party is interpreted INTO — i.e. the caller\'s own language. ' +
+          'This defaults to the language the caller is speaking to you (see set_caller_language); ' +
+          'confirm it with them rather than asking from scratch.',
+      },
       genderPreference: {
         type: 'string',
         enum: ['male', 'female', 'no_preference'],
@@ -85,6 +97,29 @@ export const REQUEST_HANDOFF: Anthropic.Tool = {
   input_schema: { type: 'object', additionalProperties: false, properties: {} },
 };
 
+export const SET_CALLER_LANGUAGE: Anthropic.Tool = {
+  name: 'set_caller_language',
+  description:
+    'Report the language the CALLER is speaking to you, detected from their words. Call this on ' +
+    'your first turn and again ANY time the caller switches language mid-call. This is the ' +
+    'language you converse in — it controls the voice you speak in and the transcription of what ' +
+    'the caller says. It also defaults the interpreter\'s target language (what their third party ' +
+    'gets interpreted into). It is NOT the third party\'s language (that is record_intake ' +
+    'sourceLanguage). Only English, Spanish, and French are supported.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['language'],
+    properties: {
+      language: {
+        type: 'string',
+        enum: ['English', 'Spanish', 'French'],
+        description: 'The language the caller is currently speaking to you.',
+      },
+    },
+  },
+};
+
 export const DECLINE_REQUEST: Anthropic.Tool = {
   name: 'decline_request',
   description:
@@ -106,6 +141,7 @@ export const DECLINE_REQUEST: Anthropic.Tool = {
 };
 
 export const TOOLS: Anthropic.Tool[] = [
+  SET_CALLER_LANGUAGE,
   RECORD_INTAKE,
   CHOOSE_SERVICE_TIER,
   REQUEST_HANDOFF,

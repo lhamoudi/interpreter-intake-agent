@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS callers (
   gender_preference    TEXT,
   industry             TEXT,
   email                TEXT,                       -- last-used email, for the video-tier link
+  caller_language      TEXT,                       -- language the CALLER speaks to the agent (EN/ES/FR); presets STT/TTS on the next call
   call_count           INTEGER NOT NULL DEFAULT 0,
   last_seen_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );

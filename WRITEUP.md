@@ -3,12 +3,25 @@
 ## The use case, and why
 
 I swapped the default real-estate scenario for **over-the-phone interpretation (OPI)
-intake**. It's a domain I know to production depth (I currently work on an interpretation
-platform), so I can defend the design rather than improvise it, and it has an AI challenge
-the real-estate scenario lacks: **the caller may not speak English**, which makes language
-handling a real accessibility feature rather than a demo trick. It's also a hard-real-time
-triage problem where *the handoff is the product* — exactly what exercises the human-handoff
-bonus naturally.
+intake** — a domain I know to production depth. I was previously embedded with a large
+interpretation provider's development team, where we built out their IVR intake flow and the
+overflow routing and orchestration behind it. So I'm not improvising this design; I'm building
+the piece I'd most want to *upgrade* in a system I've actually shipped: the front door.
+
+That real system routes overflow demand to partner interpreter networks with TaskRouter and
+Flex, but the intake in front of it is a **fixed-path, DTMF-only IVR** — one intent at a time,
+menu by menu. Replacing it with a conversational, agentic IVR is exactly what ConversationRelay
+and Agent Connect are for: a caller can voice several intents at once, in any order — *"I need a
+Spanish-to-English interpreter, male, for a doctor visit, and I need them immediately"* — and the
+agent captures all of it, confirms, and routes in one turn. That acceleration matters for the
+medical practitioners, lawyers, and community workers who need an interpreter the moment they're
+with someone who doesn't speak their language.
+
+The use case also carries an AI challenge real estate lacks — **the caller may not speak
+English**, making language handling a genuine accessibility concern — and it's a hard-real-time
+triage problem where *the handoff is the product*, which exercises the human-handoff bonus
+naturally. `docs/overflow-network-integration.md` sketches how this front door slots into the
+overflow network downstream.
 
 ## Twilio primitives used, and why
 

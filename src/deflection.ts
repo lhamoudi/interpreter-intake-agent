@@ -3,10 +3,10 @@
  *
  * Once the required intake is complete, the caller is offered three ways to be
  * served, with an explicit cost/tradeoff framing:
- *   - AI interpretation now      — cheapest (roadmap; not a built operating mode)
- *   - human interpreter callback — premium
- *   - Twilio Video Room link     — WebRTC, good for screensharing / paper
- *                                  documents, and removes PSTN per-minute cost
+ *   - AI interpretation now       — cheapest (roadmap; not a built operating mode)
+ *   - human interpreter, live     — premium (transferred on this call into Flex)
+ *   - Twilio Video Room link      — WebRTC, good for screensharing / paper
+ *                                   documents, and removes PSTN per-minute cost
  *
  * Only the Video Room path is actually actioned here: we create a real Twilio
  * Video Room and EMAIL the caller a join link (via SendGrid, Twilio-owned).
@@ -70,8 +70,8 @@ export interface VideoDeflectionResult {
  * Create a Twilio Video Room and email the caller a join link.
  *
  * `toEmail` is the address the caller gave for the video session. Returns
- * ok:false with a reason on any failure — the caller flow degrades to a human
- * callback rather than dead-ending.
+ * ok:false with a reason on any failure — the caller flow degrades to a live
+ * human transfer rather than dead-ending.
  */
 export async function deflectToVideoRoom(
   conversationId: string,

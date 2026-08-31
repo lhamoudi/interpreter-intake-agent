@@ -9,22 +9,20 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { runAgent, initCall } from '../agent.js';
-import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
+import type { ConversationId } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set.');
   process.exit(1);
 }
 
-const fakeVoice = { getWebsocket: () => null } as unknown as VoiceChannel;
 const conversationId = randomUUID() as ConversationId;
 
 const turns = [
   'I need a Mandarin interpreter please.',
   'A female interpreter would be best.',
-  "It's for a hospital visit next week, so scheduled.",
-  'Use the number I called from.',
-  'Human callback is fine.',
+  "It's for a hospital visit.",
+  'The human option is fine, connect me.',
 ];
 
 async function main() {
@@ -34,7 +32,7 @@ async function main() {
   for (const [i, turn] of turns.entries()) {
     console.log(`\n--- turn ${i + 1} ---`);
     console.log('caller:', turn);
-    const reply = await runAgent(turn, { voice: fakeVoice, conversationId });
+    const reply = await runAgent(turn, { conversationId });
     console.log('agent: ', reply);
     replies.push(reply);
   }

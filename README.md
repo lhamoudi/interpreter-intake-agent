@@ -68,7 +68,8 @@ scope, hangs up mid-flow, or clearly isn't a real interpreter request.
 **Where state lives** (the "what happens when things fail" question):
 - **In-flight call state** lives in the `TACServer` process, keyed by `conversationId`.
   On a single always-on Fly machine this is correct and simple.
-- **Durable record** of each request → Turso `requests` (retrievable via `GET /requests`).
+- **Durable record** of each request → Turso `requests` (retrievable via `GET /requests`;
+  intentionally unauthenticated for the demo — in production it would sit behind auth).
 - **Cross-call memory** → Turso `callers`, keyed by a salted hash of the caller number.
 - If Turso is unreachable, lookups/writes are caught and logged; the call still completes.
 - If the caller hangs up mid-intake, the partial record is persisted as `abandoned`.

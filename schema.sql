@@ -5,13 +5,11 @@ CREATE TABLE IF NOT EXISTS requests (
   id                   TEXT PRIMARY KEY,          -- uuid
   conversation_id      TEXT NOT NULL,
   caller_hash          TEXT,                       -- hashed E.164, links to callers
-  status               TEXT NOT NULL,              -- 'complete' | 'abandoned'
+  status               TEXT NOT NULL,              -- 'complete' | 'abandoned' | 'declined'
   source_language      TEXT,                       -- language the caller speaks
   target_language      TEXT,                       -- language they need interpreted to
   gender_preference    TEXT,                       -- 'male' | 'female' | 'no_preference'
   industry             TEXT,                       -- 'medical' | 'legal' | 'community' | null
-  urgency              TEXT,                       -- 'now' | 'scheduled'
-  callback_number      TEXT,
   service_tier         TEXT,                       -- 'ai' | 'human' | 'video' | null
   notes                TEXT,                       -- free-text "what matters most"
   raw_intake           TEXT,                       -- full JSON snapshot
@@ -31,7 +29,6 @@ CREATE TABLE IF NOT EXISTS callers (
   target_language      TEXT,
   gender_preference    TEXT,
   industry             TEXT,
-  callback_number      TEXT,
   call_count           INTEGER NOT NULL DEFAULT 0,
   last_seen_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );

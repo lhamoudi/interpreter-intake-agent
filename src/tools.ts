@@ -47,14 +47,14 @@ export const CHOOSE_SERVICE_TIER: Anthropic.Tool = {
     'ways to be served. Only call this once you have all required intake details and have ' +
     'presented the options and the caller has picked one. The options, with their tradeoffs:\n' +
     '  - "ai": an AI interpreter can assist right now on this call — the lowest-cost option.\n' +
-    '  - "human": a professional human interpreter calls them back — higher cost, best for ' +
-    'sensitive or complex matters.\n' +
+    '  - "human": a professional human interpreter, connected live on this call — higher cost, ' +
+    'best for sensitive or complex matters.\n' +
     '  - "video": we email them a link to join a video session, where they can use voice or ' +
     'video and share their screen or documents (for example a paper form or letter). This is ' +
     'also lower cost than a phone interpreter.\n' +
     'For "video", you MUST also pass the caller\'s email (the link is sent by email, not text); ' +
-    'ask for it if you do not have it. For "human" the system secures the callback. Report the ' +
-    'chosen tier here.',
+    'ask for it if you do not have it. For "human" the system transfers this live call. Report ' +
+    'the chosen tier here.',
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -78,10 +78,10 @@ export const CHOOSE_SERVICE_TIER: Anthropic.Tool = {
 export const REQUEST_HANDOFF: Anthropic.Tool = {
   name: 'request_handoff',
   description:
-    'Secure a human interpreter callback for this request. Only call this once you have ' +
-    'gathered every required detail, offered the caller their service options, and they chose ' +
-    'the human-callback option (or an AI/video option that has fallen back to a human). The ' +
-    'system will validate completeness; if anything is missing it will tell you what to ask for.',
+    'Connect this live call to a human interpreter. Only call this once you have gathered ' +
+    'every required detail, offered the caller their service options, and they chose the ' +
+    'human option (or an AI/video option that has fallen back to a human). The system will ' +
+    'validate completeness; if anything is missing it will tell you what to ask for.',
   input_schema: { type: 'object', additionalProperties: false, properties: {} },
 };
 

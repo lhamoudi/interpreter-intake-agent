@@ -1,10 +1,10 @@
 /**
  * Smoke test for the human-handoff path. Needs ANTHROPIC_API_KEY.
  *
- * Verifies that on the human-callback tier, session.pendingHandoffData is set
- * with the full lead context — the TAC voice-only handoff wire mechanism that
- * ConversationRelay delivers to the Studio Flow (→ Flex). The actual Flex
- * routing lives in the Studio Flow and is exercised on a live call.
+ * Verifies that on the human tier, session.pendingHandoffData is set with the
+ * full lead context — the TAC voice-only handoff wire mechanism that
+ * ConversationRelay delivers to the Studio Flow (→ Flex live transfer). The
+ * actual Flex routing lives in the Studio Flow and is exercised on a live call.
  *
  * Run: npx tsx src/smoke/handoff.ts
  */
@@ -12,22 +12,20 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { runAgent, initCall } from '../agent.js';
-import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
+import type { ConversationId } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set.');
   process.exit(1);
 }
 
-const fakeVoice = { getWebsocket: () => null } as unknown as VoiceChannel;
 // A mutable fake session so we can observe pendingHandoffData being set.
 const session: { pendingHandoffData?: { type?: 'end'; handoffData: string } } = {};
 const conversationId = randomUUID() as ConversationId;
 
 const turns = [
   'I need a Spanish interpreter, no gender preference, for a doctor visit.',
-  "It's urgent, I need someone now. Use the number I'm calling from.",
-  'A human interpreter calling me back is best.',
+  'A human interpreter on this call sounds best, please connect me.',
   'Yes, thanks.',
 ];
 
@@ -37,7 +35,7 @@ async function main() {
   for (const [i, turn] of turns.entries()) {
     console.log(`\n--- turn ${i + 1} ---`);
     console.log('caller:', turn);
-    const reply = await runAgent(turn, { voice: fakeVoice, conversationId, session });
+    const reply = await runAgent(turn, { conversationId, session });
     console.log('agent: ', reply);
   }
 

@@ -41,8 +41,8 @@ export interface CallerMemory {
 
 /**
  * Look up a caller by their raw address (E.164), hashing internally. Used before
- * the greeting is spoken (TwiML customizer) to personalize it and preset the
- * language. Best-effort: returns null on first contact or any lookup failure.
+ * the greeting is spoken (TwiML customizer) so a returning caller gets a
+ * "welcome back". Best-effort: returns null on first contact or any failure.
  */
 export async function lookupCallerByAddress(
   address: string | undefined,

@@ -6,9 +6,11 @@
  */
 
 import 'dotenv/config';
-import { TAC, TACConfig, VoiceChannel, TACServer } from 'twilio-agent-connect';
+import { TAC, TACConfig, VoiceChannel, TACServer, createLogger } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
+
+const log = createLogger({ name: 'server' });
 
 const NEW_CALLER_GREETING =
   "Thanks for calling. I can connect you with an interpreter. What language do you need one for?";
@@ -20,12 +22,11 @@ async function main() {
   // Human handoff: when TWILIO_STUDIO_HANDOFF_FLOW_SID is set, TACConfig picks it
   // up and TAC automatically wires the ConversationRelay `<Connect action>` URL
   // to that Studio Flow (precedence layer 4 in resolveActionUrl). We set
-  // session.pendingHandoffData on the human-callback tier (see agent.ts); when
+  // session.pendingHandoffData on the human tier (see agent.ts); when
   // ConversationRelay ends the session it triggers the Flow carrying handoffData,
-  // and the Flow routes the call into Flex via TaskRouter. Nothing to wire here.
+  // and the Flow transfers the live call into Flex via TaskRouter. Nothing to wire here.
   if (config.studioHandoffFlowSid) {
-    console.log('handoff: Studio Flow configured, TAC will wire the voice action URL',
-      config.studioHandoffFlowSid);
+    log.info({ flowSid: config.studioHandoffFlowSid }, 'handoff: Studio Flow configured');
   }
 
   const voiceChannel = new VoiceChannel(tac, {
@@ -52,7 +53,7 @@ async function main() {
   tac.onMessageReady(async ({ conversationId, message, session }) => {
     // Seed caller memory from the real PSTN address the first time we see this call.
     await initCall(conversationId as string, session.authorInfo?.address);
-    return runAgent(message, { voice: voiceChannel, conversationId, session });
+    return runAgent(message, { conversationId, session });
   });
 
   tac.onConversationEnded(async ({ session }) => {
@@ -69,6 +70,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('fatal startup error', err);
+  log.error({ err }, 'fatal startup error');
   process.exit(1);
 });

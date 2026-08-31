@@ -14,7 +14,7 @@ routed to **partner** interpreter networks when in-house capacity is exhausted �
 the caller hearing the seams, and without losing reporting.
 
 This intake agent is the **front door**: it answers instantly, qualifies the request
-(language pair, gender, subject, urgency), and produces a structured, routable task. What
+(language pair, gender, subject), and produces a structured, routable task. What
 happens *after* handoff is the overflow-routing problem below.
 
 ## The routing pattern (Twilio primitives)
@@ -36,7 +36,7 @@ happens *after* handoff is the overflow-routing problem below.
 
 - **TaskRouter Workflow** expresses the overflow policy declaratively: try the in-house
   queue for the language pair, and on timeout fall through to partner queues in priority
-  order. The intake agent's captured attributes (language, gender, subject, urgency) are the
+  order. The intake agent's captured attributes (language, gender, subject) are the
   task attributes the Workflow routes on.
 - **The caller stays in one place** while routing happens — held in the queue on uniform
   hold music — so redirection never replaces their hold experience with a partner's. Only
@@ -57,7 +57,7 @@ Everything the agent captures is exactly what the router needs:
 | source/target language | queue selection (language-pair routing) |
 | gender preference | worker attribute matching |
 | subject area (medical/legal/community) | specialised-interpreter matching |
-| urgency (now vs scheduled) | priority / SLA tier |
+| urgency *(roadmap — not captured by the current agent)* | priority / SLA tier |
 | service tier (human / video) | channel of the eventual connection |
 
 The agent already emits these as Flex task attributes on handoff, so pointing its handoff
@@ -91,7 +91,8 @@ complete, structured context.
 
 An intelligent, CX-oriented overflow routing solution is only useful if people want to call in
 and use the platform. If the upfront intake experience is not smooth and speedy — and a
-fixed-path, DTMF-only IVR is not — then callers may seek out alternative interpretation services.
+fixed-path, DTMF-only IVR is not — then callers may seek out alternative interpretation services
+that align with modern CX trends.
 
 Swapping a DTMF IVR for a **generative, agentic IVR** — using Twilio Agent Connect and
 ConversationRelay — lets callers traverse the intake path *conversationally* instead of waiting
@@ -100,4 +101,4 @@ expedient conversational flow, where the caller can voice multiple intents at on
 *"I need a Spanish-to-English interpreter, male, for a doctor visit, and I need them immediately."*
 The agent captures everything asked for instantly, confirms it, and proceeds to route the call.
 That acceleration can be critical for medical practitioners, lawyers, and community workers — who
-often need immediate support the moment they are with someone who doesn't speak their language.
+often need immediate support when encountering someone who doesn't speak their language.

@@ -1,6 +1,6 @@
 /**
  * Smoke test for the Claude tool loop — needs ANTHROPIC_API_KEY, nothing else.
- * Fakes a VoiceChannel (its methods are never exercised by this flow).
+ * Runs the real agent loop against scripted turns — no phone, no Twilio.
  *
  * Run with: npx tsx src/smoke/conversation.ts
  */
@@ -8,14 +8,13 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { runAgent, initCall } from '../agent.js';
-import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
+import type { ConversationId } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set — export it or add it to .env first.');
   process.exit(1);
 }
 
-const fakeVoice = { getWebsocket: () => null } as unknown as VoiceChannel;
 const conversationId = randomUUID() as ConversationId;
 
 // A caller who volunteers info out of order, hesitates once, and confirms at the end —
@@ -33,7 +32,7 @@ async function main() {
   for (const [i, turn] of turns.entries()) {
     console.log(`\n--- turn ${i + 1} ---`);
     console.log('caller:', turn);
-    const reply = await runAgent(turn, { voice: fakeVoice, conversationId });
+    const reply = await runAgent(turn, { conversationId });
     console.log('agent: ', reply);
   }
 }

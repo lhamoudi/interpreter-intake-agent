@@ -13,7 +13,7 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { runAgent, initCall } from '../agent.js';
-import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
+import type { ConversationId } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set.');
@@ -22,21 +22,19 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const live = process.env.LIVE_VIDEO === '1';
 const testEmail = process.env.TEST_EMAIL_TO ?? 'caller@example.com';
-const fakeVoice = { getWebsocket: () => null } as unknown as VoiceChannel;
 const conversationId = randomUUID() as ConversationId;
 
 const turns = live
   ? [
       'I need a Spanish interpreter, no gender preference, for a medical appointment.',
-      "It's not urgent, we can schedule it. Use the number I'm calling from.",
+      "It's for a medical appointment.",
       'Let me do the video option please.',
       `Sure, my email is ${testEmail}.`,
       'Yes, that sounds good, thanks.',
     ]
   : [
       'I need a Spanish interpreter, no gender preference, for a medical appointment.',
-      "It's not urgent, we can schedule it. Use the number I'm calling from.",
-      'I think a human interpreter calling me back is best.',
+      'I think a human interpreter on this call is best.',
       'Yes, that sounds good, thanks.',
     ];
 
@@ -50,7 +48,7 @@ async function main() {
   for (const [i, turn] of turns.entries()) {
     console.log(`\n--- turn ${i + 1} ---`);
     console.log('caller:', turn);
-    const reply = await runAgent(turn, { voice: fakeVoice, conversationId });
+    const reply = await runAgent(turn, { conversationId });
     console.log('agent: ', reply);
     replies.push(reply);
   }

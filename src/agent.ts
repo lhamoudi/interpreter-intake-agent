@@ -10,7 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'node:crypto';
-import { createLogger, maskPhone, type VoiceChannel, type ConversationId } from 'twilio-agent-connect';
+import { createLogger, type ConversationId } from 'twilio-agent-connect';
 import { TOOLS } from './tools.js';
 import {
   type IntakeRecord,
@@ -39,7 +39,6 @@ interface CallState {
   history: Anthropic.MessageParam[];
   intake: IntakeRecord;
   callerHash: string | null;
-  callerAddress: string | null;
   memory: CallerMemory | null;
   handoffDone: boolean;
   declined: boolean;
@@ -103,22 +102,6 @@ function baseSystemPrompt(): string {
   ].join('\n');
 }
 
-/**
- * Surface the live caller-ID number so Claude can resolve "use the number I'm
- * calling from" (or default to it without being asked to confirm nothing else
- * fits). Without this the model has no idea what number that phrase refers to —
- * the exact gap a real test call exposed.
- */
-function callerAddressPreamble(callerAddress: string | null): string {
-  if (!callerAddress) return '';
-  return (
-    `\n\nThe number this caller is dialing in from (their caller ID) is ${callerAddress}. ` +
-    'If they ask you to use the number they\'re calling from, or don\'t volunteer a different ' +
-    'callback number, use this one — call record_intake with it and confirm it back to them ' +
-    'as you would any other detail.'
-  );
-}
-
 function memoryPreamble(memory: CallerMemory | null): string {
   if (!memory || memory.callCount === 0) return '';
   const known = [
@@ -152,9 +135,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
     { conversationId, returningCaller: Boolean(memory && memory.callCount > 0) },
     'call started',
   );
-  // Seed known preferences from memory, but NOT callbackNumber — it's only needed
-  // for scheduled callers, and seeding it made the agent read a stale number back
-  // to now-callers who are connected live.
+  // Seed known preferences from memory so a returning caller can skip questions.
   const seed: IntakeRecord = memory
     ? {
         sourceLanguage: memory.sourceLanguage,
@@ -168,7 +149,6 @@ export async function initCall(conversationId: string, callerAddress: string | u
     history: [],
     intake: seed,
     callerHash,
-    callerAddress: callerAddress ?? null,
     memory,
     handoffDone: false,
     declined: false,
@@ -177,7 +157,6 @@ export async function initCall(conversationId: string, callerAddress: string | u
 }
 
 interface Deps {
-  voice: VoiceChannel;
   conversationId: ConversationId;
   /**
    * The live TAC session, when present (real calls). Handoff sets
@@ -196,8 +175,7 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
 
   state.history.push({ role: 'user', content: userMessage });
 
-  const system =
-    baseSystemPrompt() + callerAddressPreamble(state.callerAddress) + memoryPreamble(state.memory);
+  const system = baseSystemPrompt() + memoryPreamble(state.memory);
 
   // Tool loop: Claude may speak AND call a tool in the same hop (a text block
   // alongside tool_use blocks) — that spoken text must not be dropped just
@@ -232,7 +210,12 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
     state.history.push({ role: 'user', content: results });
 
     if (hop === 5) {
-      spoken.push("Let me get a colleague to help you finish this — one moment.");
+      // Hop cap reached with tool_results as the last history entry. Push the
+      // fallback line into history as an assistant message too, so the next
+      // turn's user message doesn't create two consecutive user-role messages.
+      const fallback = 'Let me get a colleague to help you finish this — one moment.';
+      spoken.push(fallback);
+      state.history.push({ role: 'assistant', content: fallback });
     }
   }
 
@@ -308,7 +291,7 @@ async function dispatchTool(
         }
         const result = await deflectToVideoRoom(conversationId, state.intake.email);
         if (result.ok) {
-          // Video tier: caller joins by link, so no human callback notification.
+          // Video tier: caller joins by link, so no live transfer to Flex.
           await finalizeComplete(state, deps, false); // persist + remember, tier recorded
           log.info({ conversationId, tool: 'choose_service_tier', tier, videoOk: true }, 'tool call');
           return JSON.stringify({
@@ -318,7 +301,7 @@ async function dispatchTool(
             message: 'Video session created and join link emailed to the caller.',
           });
         }
-        // Video setup failed — fall back to a human callback rather than dead-end.
+        // Video setup failed — fall back to a live human transfer rather than dead-end.
         state.intake.serviceTier = 'human';
         log.warn(
           { conversationId, tool: 'choose_service_tier', tier, videoOk: false, reason: result.reason },
@@ -330,8 +313,8 @@ async function dispatchTool(
           action: 'fallback_to_human',
           reason: result.reason,
           message:
-            'Could not set up the video session. Tell the caller you will have a human ' +
-            'interpreter call them back instead, then call request_handoff.',
+            'Could not set up the video session. Tell the caller you will connect them with a ' +
+            'human interpreter on this call instead, then call request_handoff.',
         });
       }
 
@@ -345,8 +328,8 @@ async function dispatchTool(
           tier: 'ai',
           action: 'fallback_to_human',
           message:
-            'AI live interpretation is not available yet on this line. Let the caller know a ' +
-            'human interpreter will call them back shortly, then call request_handoff.',
+            'AI live interpretation is not available yet on this line. Let the caller know you ' +
+            'will connect them with a human interpreter on this call, then call request_handoff.',
         });
       }
 
@@ -356,7 +339,7 @@ async function dispatchTool(
         ok: true,
         tier: 'human',
         action: 'proceed_to_handoff',
-        message: 'Proceed to call request_handoff to secure the human interpreter callback.',
+        message: 'Proceed to call request_handoff to transfer this live call to a human interpreter.',
       });
     }
 
@@ -405,12 +388,11 @@ async function dispatchTool(
 }
 
 /**
- * Persist a completed intake and remember the caller. For the human-callback
- * path (`notifyHuman`), also (a) set the TAC voice-handoff payload on the live
- * session so ConversationRelay emits the `end` message with `handoffData`, and
- * (b) email the duty interpreter the lead so they can call the caller back.
- * Both are best-effort and never block completion — the request is persisted
- * regardless.
+ * Persist a completed intake and remember the caller. For the human tier
+ * (`notifyHuman`), also set the TAC voice-handoff payload on the live session so
+ * ConversationRelay emits the `end` message with `handoffData` and the Studio
+ * Flow transfers the call into Flex. Best-effort: persistence failures are
+ * logged, never block completion.
  */
 async function finalizeComplete(
   state: CallState,

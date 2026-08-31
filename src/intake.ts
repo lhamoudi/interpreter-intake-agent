@@ -15,8 +15,8 @@ export type Industry = 'medical' | 'legal' | 'community';
  * How the caller chose to be served, offered once the required intake is complete:
  *  - 'ai'    — AI interprets the call itself now (cheapest; roadmap, offered but
  *              actual live AI interpretation is not built — falls back to human).
- *  - 'human' — a human interpreter calls them back (premium).
- *  - 'video' — deflect to a Twilio Video Room (WebRTC) via an SMS'd join link
+ *  - 'human' — a human interpreter, connected live on this call (premium).
+ *  - 'video' — deflect to a Twilio Video Room (WebRTC) via an emailed join link
  *              (good for screensharing / documents; removes PSTN per-minute cost).
  */
 export type ServiceTier = 'ai' | 'human' | 'video';
@@ -63,13 +63,8 @@ function isBlank(v: unknown): boolean {
 
 /** Deterministic completeness check. This — not the model — gates handoff. */
 export function checkComplete(record: IntakeRecord): Completeness {
-  const required: (keyof IntakeRecord)[] = [...REQUIRED_SLOTS];
-
-  const missing = required.filter((slot) => {
-    const v = record[slot];
-    return isBlank(v);
-  });
-  return { complete: missing.length === 0, missing };
+  const missing = REQUIRED_SLOTS.filter((slot) => isBlank(record[slot]));
+  return { complete: missing.length === 0, missing: [...missing] };
 }
 
 /** Merge a partial update from the model into the running record. */

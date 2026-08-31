@@ -171,5 +171,5 @@ fly.toml
 ```
 
 See [WRITEUP.md](WRITEUP.md) for the design rationale, and
-[docs/lango-crowd-integration.md](docs/lango-crowd-integration.md) for how this front door
+[docs/overflow-network-integration.md](docs/overflow-network-integration.md) for how this front door
 would slot into a production interpreter-overflow network.

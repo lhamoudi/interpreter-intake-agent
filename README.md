@@ -4,7 +4,7 @@ A conversational **voice AI agent** that answers a phone call, collects what's n
 to book an over-the-phone interpreter, and hands the caller off to a human — built on
 **Twilio Agent Connect** (ConversationRelay) with **Claude** driving the conversation.
 
-It's the Twilio FDE take-home, with the default real-estate scenario swapped for an
+Real-estate scenario swapped for an
 **over-the-phone interpretation (OPI) intake** use case (explicitly permitted by the
 brief). Interpretation intake is a domain with a genuine AI challenge the real-estate
 scenario lacks — the caller may not speak English — and a hard-real-time handoff where

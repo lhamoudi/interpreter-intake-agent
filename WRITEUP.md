@@ -17,10 +17,14 @@ agent captures all of it, confirms, and routes in one turn. That acceleration ma
 medical practitioners, lawyers, and community workers who need an interpreter the moment they're
 with someone who doesn't speak their language.
 
-The use case also carries an AI challenge real estate lacks — **the caller may not speak
-English**, making language handling a genuine accessibility concern — and it's a hard-real-time
-triage problem where *the handoff is the product*, which exercises the human-handoff bonus
-naturally. `docs/overflow-network-integration.md` sketches how this front door slots into the
+In this use case, the handoff to the interpreter ***IS*** the product, so capturing every critical 
+intent via the intake flow is non-negotiable.  
+
+The use case also carries an AI challenge real estate lacks — **the caller may not speak English**, 
+making language handling a genuine accessibility concern. This is something an agentic AI IVR can 
+excel at - with Twilio's ConversationRelay supporting multilingual voice agents.
+
+`docs/overflow-network-integration.md` sketches how this front door slots into the
 overflow network downstream.
 
 ## Twilio primitives used, and why
@@ -97,9 +101,14 @@ tested by ear on real calls.
 
 ## What I'd change for production
 
-- **Horizontal scale.** In-flight state is single-instance today. To scale, each call's state
-  moves to a per-call actor (a Durable Object / actor-per-`CallSid`) so any node can serve any
-  socket. Naming this is the point; building it isn't worth the take-home hours.
+- **Horizontal scale.** Today each call's state lives in a plain in-memory map inside the one
+  Node process (`const calls` in `agent.ts`), which is correct only because I run exactly one
+  machine. Add a second machine and the state is trapped on whichever one first answered the
+  call — any other machine has amnesia for it. To scale, each call's state moves to its own
+  addressable per-call unit keyed by `CallSid` (a Cloudflare Durable Object, or an
+  actor-per-call in an Akka/Orleans sense), so any node can look it up and serve any socket.
+  Naming the fix is the point here; actually building horizontal scale would be over-engineering
+  a take-home that one machine handles comfortably.
 - **Hardening** the explicit non-goals: webhook signature validation is on, but I'd add
   structured retries around Turso, rate limiting, and proper secret rotation.
 - **Deliverability** for the video email (SPF/DKIM on the sending domain — it currently lands

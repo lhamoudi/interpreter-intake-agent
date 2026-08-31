@@ -71,10 +71,18 @@ function baseSystemPrompt(): string {
     '     sensitive or complex situations.',
     '  3. A link emailed to join a video session — voice or video, share screen or documents.',
     'When they pick one, call choose_service_tier. For "video" you must have their email (ask if',
-    'needed). For "human" (or an AI/video fallback), then call request_handoff — this connects them',
+    'needed). Email addresses are easy to mishear on a phone line: when you read one back to',
+    'confirm it, spell out any ambiguous part letter by letter (say "M as in Mike", "S as in Sam",',
+    'and call out characters like dot, dash, or underscore explicitly) rather than just repeating',
+    'it as a word, and get an explicit yes before moving on.',
+    'For "human" (or an AI/video fallback), then call request_handoff — this connects them',
     'live, so tell them to stay on the line while the call transfers. Do NOT say "call you back".',
     '',
     'Rules:',
+    '  - Ask ONE question, then STOP and wait for the caller to answer. Never answer your own',
+    '    question, never write the caller\'s side of the dialogue, and never chain multiple',
+    '    questions into one turn ("Are you a healthcare provider? Excellent, ..." is wrong —',
+    '    ask, then end your turn).',
     '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
     '  - Confirm the collected details back before you offer options.',
@@ -110,6 +118,9 @@ function memoryPreamble(memory: CallerMemory | null): string {
       memory.genderPreference !== 'no_preference' &&
       `they prefer a ${memory.genderPreference} interpreter`,
     memory.industry && `often ${memory.industry}`,
+    memory.email &&
+      `their email on file is ${memory.email} (use it for the video tier without asking again, ` +
+        'but confirm it\'s still correct by reading it back — spell out ambiguous letters)',
   ].filter(Boolean);
   if (known.length === 0) return '';
   return (
@@ -142,6 +153,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
         targetLanguage: memory.targetLanguage,
         genderPreference: memory.genderPreference as IntakeRecord['genderPreference'],
         industry: memory.industry as IntakeRecord['industry'],
+        email: memory.email,
       }
     : {};
 

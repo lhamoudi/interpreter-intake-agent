@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS callers (
   target_language      TEXT,
   gender_preference    TEXT,
   industry             TEXT,
+  email                TEXT,                       -- last-used email, for the video-tier link
   call_count           INTEGER NOT NULL DEFAULT 0,
   last_seen_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );

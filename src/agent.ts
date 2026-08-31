@@ -119,8 +119,9 @@ function memoryPreamble(memory: CallerMemory | null): string {
       `they prefer a ${memory.genderPreference} interpreter`,
     memory.industry && `often ${memory.industry}`,
     memory.email &&
-      `their email on file is ${memory.email} (use it for the video tier without asking again, ` +
-        'but confirm it\'s still correct by reading it back — spell out ambiguous letters)',
+      `their email on file is ${memory.email} — it was already confirmed on a prior call, so if ` +
+        'they choose the video tier just say you have it on file and briefly name it in plain ' +
+        'speech (no need to spell it out letter by letter); only ask again if they say it has changed',
   ].filter(Boolean);
   if (known.length === 0) return '';
   return (

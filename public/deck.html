@@ -209,13 +209,15 @@
   @media (min-width: 820px) { .fsplit { grid-template-columns: 1fr 1fr 1fr; } }
   .fsplit .fnode { flex-direction: column; align-items: flex-start; gap: .2rem; }
 
-  .steps { counter-reset: s; list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .9rem; max-width: 62ch; }
-  .steps li { counter-increment: s; display: flex; gap: 1rem; align-items: baseline; }
+  .steps { counter-reset: s; list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 1.1rem; max-width: 62ch; }
+  .steps li { counter-increment: s; display: flex; gap: 1rem; align-items: flex-start; }
   .steps li::before {
     content: counter(s, decimal-leading-zero);
     font-family: "JetBrains Mono", monospace;
-    color: var(--red); font-weight: 700; font-size: .8rem; min-width: 2ch;
+    color: var(--red); font-weight: 700; font-size: .8rem;
+    flex: none; width: 2ch; padding-top: .2rem;
   }
+  .steps li > span { flex: 1 1 auto; min-width: 0; }
 
   .footnote { margin-top: 2rem; font-size: .85rem; color: var(--muted); max-width: 65ch; }
   .footnote code { font-size: .95em; }
@@ -389,10 +391,10 @@
   <div class="eyebrow"><span class="n">06</span> Human handoff</div>
   <h2>Live transfer into Flex — with the context attached</h2>
   <ol class="steps">
-    <li>Server sets <code>session.pendingHandoffData</code> with the full lead as task attributes.</li>
-    <li>TAC emits the ConversationRelay <code>end</code> message after the agent's final words.</li>
-    <li>ConversationRelay POSTs it to the <code>&lt;Connect action&gt;</code> URL — a Studio Flow.</li>
-    <li>The Flow's Send-to-Flex widget creates the TaskRouter task; an interpreter accepts the live call.</li>
+    <li><span>Server sets <code>session.pendingHandoffData</code> with the full lead as task attributes.</span></li>
+    <li><span>TAC emits the ConversationRelay <code>end</code> message after the agent's final words.</span></li>
+    <li><span>ConversationRelay POSTs it to the <code>&lt;Connect action&gt;</code> URL — a Studio Flow.</span></li>
+    <li><span>The Flow's Send-to-Flex widget creates the TaskRouter task; an interpreter accepts the live call.</span></li>
   </ol>
   <p class="footnote">The platform subtlety: in voice-only mode TAC's convenience helper
   <code>createStudioHandoffTool</code> throws — the documented path is the

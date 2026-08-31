@@ -35,13 +35,9 @@ overflow network downstream.
   the surface I own small and removed a whole class of porting risk (see "what I'd change").
 - **Studio Flow → Flex** for the human handoff — a **live transfer**, not a message to a queue:
   the caller stays on the line and is connected to an interpreter who accepts the task in Flex,
-  with the captured intake riding along as **task attributes** so they don't re-qualify the
-  caller. The mechanism is a voice-only-mode subtlety worth knowing: TAC's convenience helper
-  `createStudioHandoffTool` throws in voice-only mode (it needs Conversation Orchestrator), so I
-  use the documented path — set `session.pendingHandoffData` (`buildHandoffData` in
-  `src/handoff.ts`); TAC emits a ConversationRelay `end` message that ConversationRelay POSTs to
-  the `<Connect action>` URL, wired to the "TAC Handoff to Agent" Studio Flow, whose Send-to-Flex
-  widget creates the TaskRouter task.
+  with the captured intake carried on the **task attributes** (surfaced in the stock screen-pop
+  via the conventional keys; the full record is on the task for the customer's existing
+  interpreter Flex plugin to render).
 - **Twilio Video** for the deflection tier — a real WebRTC room created per request.
 - **SendGrid** (Twilio-owned) to email the video join link.
 - **DTMF + speech** via ConversationRelay config (spoken ten-digit strings transcribe badly).
@@ -58,7 +54,7 @@ the server decides what to do with them.
 **How the agent decides it has enough info** — the headline design decision. It doesn't
 decide alone. Claude fills slots via `record_intake`, but a **deterministic server-side
 check** (`checkComplete` against `REQUIRED_SLOTS` in `src/intake.ts`) gates the handoff.
-Completeness is code, not model judgement.
+Completeness is dictated by code, not model judgement.
 
 **Where state lives:** in-flight call state is an in-process map keyed by `conversationId`
 (correct on a single always-on machine); each completed request is written to Turso
@@ -105,6 +101,10 @@ tested by ear on real calls.
   online and get a unique code the IVR validates first; the caller is then *identified*, so the 
   video link goes to the caller's email. This turns the crude caller memory DB table into a real
   member identity, and improves over simply associating by caller ANI.
+- **Integrate to customer's backend and Taskrouter workflow.** The data captured by the agent needs 
+  to ultimately be used to route the member to the appropriate practice-specific and language-specific 
+  queue - in order to target the correct workers, overflow correctly, and provide observability 
+  at the CCaaS operations level. Right now we're simplifying things using the Everyone queue.  
 - **Live AI interpretation** as an actual operating mode (bidirectional real-time translation).
   It's offered in the demo build, but not built out. This is likely the direction the customer is
   moving in already from a product offering perspective. 

@@ -17,7 +17,14 @@ import { type IntakeRecord } from './intake.js';
 
 /**
  * The Flex task attributes for this request. Every request is a live connect, so
- * the caller is on the line — the interpreter sees the request context here.
+ * the caller is on the line and the interpreter accepts this task.
+ *
+ * NOTE on visibility: only the top-level conventional keys (`name`, and to a
+ * degree `customers.*`) render in Flex's STOCK TaskInfoPanel screen-pop. The
+ * nested `interpreterRequest` object is on the task and readable by any plugin or
+ * the API, but is NOT shown by the native UI without a Flex plugin. The customer
+ * already runs an interpreter Flex plugin, so productionising this is mapping
+ * these attributes onto that plugin's existing fields — not building UI here.
  */
 export function buildTaskAttributes(
   conversationId: string,

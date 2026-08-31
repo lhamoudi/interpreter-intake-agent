@@ -80,16 +80,24 @@ The shape that gets both is a **hybrid**, and it's the recommended pattern:
   one. These give **per-partner real-time and historical visibility** without disturbing the
   long call task.
 
-The two are linked by a shared record (e.g. a conversation ID) so the per-attempt tasks roll
-up to the one journey. This is where the real engineering of an overflow network lives — a
-database-backed orchestration layer that spawns and cancels the tracking tasks, walks the
-partner list on breach, and re-enqueues the call to the original workflow if every partner is
-exhausted. The intake agent in this repo is the piece that makes every one of those routed
-tasks start with complete, structured context.
+The two are linked by a conversation ID, so the per-attempt tasks roll up to the one journey.
+This is where the real engineering of an overflow network lives — a database-backed
+orchestration layer that spawns and cancels the tracking tasks, cycles through the partner list
+on breach, and re-enqueues the call to the original workflow if every partner is exhausted. The
+intake agent in this repo is the piece that makes every one of those routed tasks start with
+complete, structured context.
 
-## Why the front door matters
+## Why the front door matters — and needs an upgrade
 
-Overflow routing is only as good as the request it routes. A voicemail or a half-filled form
-produces a task a human has to re-qualify. This agent produces a **complete, validated,
-attribute-rich task at the moment of the call** — which is what lets the automated overflow
-policy run without a human in the middle for the common case.
+An intelligent, CX-oriented overflow routing solution is only useful if people want to call in
+and use the platform. If the upfront intake experience is not smooth and speedy — and a
+fixed-path, DTMF-only IVR is not — then callers may seek out alternative interpretation services.
+
+Swapping a DTMF IVR for a **generative, agentic IVR** — using Twilio Agent Connect and
+ConversationRelay — lets callers traverse the intake path *conversationally* instead of waiting
+for menus and pushing buttons. The linear, one-intent-at-a-time DTMF flow gives way to a far more
+expedient conversational flow, where the caller can voice multiple intents at once, in any order:
+*"I need a Spanish-to-English interpreter, male, for a doctor visit, and I need them immediately."*
+The agent captures everything asked for instantly, confirms it, and proceeds to route the call.
+That acceleration can be critical for medical practitioners, lawyers, and community workers — who
+often need immediate support the moment they are with someone who doesn't speak their language.

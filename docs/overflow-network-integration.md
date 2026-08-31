@@ -63,21 +63,29 @@ Everything the agent captures is exactly what the router needs:
 The agent already emits these as Flex task attributes on handoff, so pointing its handoff
 at an overflow Workflow instead of a single queue is a configuration change, not a rewrite.
 
-## Reporting and state — the trade-off to name
+## Reporting and state — the task shape that gives both views
 
-The hard part of overflow routing is **visibility**: once a call is redirected/bridged to a
-partner, the original TaskRouter task's lifecycle can be cut short, losing the single view of
-total customer wait time. Two shapes trade off here:
+The hard part of overflow routing is **visibility**. Once a call is redirected or bridged to
+a partner, a single TaskRouter task's lifecycle can be cut short, losing the view of total
+customer wait time; but tracking each partner attempt as its own task loses that single view.
+The shape that gets both is a **hybrid**, and it's the recommended pattern:
 
-- **One long task** for the whole customer journey → clean total-wait-time reporting, but no
-  native per-partner granularity.
-- **A task per partner attempt** (sharing a conversation ID) → native per-partner real-time
-  and historical data, at the cost of the single wait-time view.
+- **One long-running voice task = the caller's actual call.** It sits in a holding queue for
+  the entire wait, until an interpreter is secured and the call is bridged. Because the call
+  lives in this one task the whole time, it gives the single, clean view of **total customer
+  wait time** — and uniform hold music throughout.
+- **Plus a short-lived tracking task per partner attempt.** When the orchestration reaches a
+  partner it creates a disposable "SLA tracking" task that dictates how long to wait for that
+  partner; it's cancelled on answer, timeout, or SLA breach, and the next partner gets a fresh
+  one. These give **per-partner real-time and historical visibility** without disturbing the
+  long call task.
 
-A production build picks one deliberately and fills the gap with a custom orchestration layer
-that captures the events the native tools don't. That orchestration is the real engineering
-in an overflow network; the intake agent in this repo is the piece that makes every one of
-those routed tasks start with complete, structured context.
+The two are linked by a shared record (e.g. a conversation ID) so the per-attempt tasks roll
+up to the one journey. This is where the real engineering of an overflow network lives — a
+database-backed orchestration layer that spawns and cancels the tracking tasks, walks the
+partner list on breach, and re-enqueues the call to the original workflow if every partner is
+exhausted. The intake agent in this repo is the piece that makes every one of those routed
+tasks start with complete, structured context.
 
 ## Why the front door matters
 

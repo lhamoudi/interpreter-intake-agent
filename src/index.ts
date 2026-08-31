@@ -15,6 +15,10 @@ import { listRequests, lookupCallerByAddress } from './memory.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DECK_PATH = path.join(__dirname, '..', 'public', 'deck.html');
+// Not committed to git — see .gitignore. Present only when this checkout's
+// private/ has the real file; served only if it does, so a fresh clone
+// without it still runs cleanly (no route is registered).
+const BRIEF_PATH = path.join(__dirname, '..', 'private', 'fde-take-home-brief.pdf');
 
 const log = createLogger({ name: 'server' });
 
@@ -77,6 +81,17 @@ async function main() {
   server.fastify.get('/deck', async (_req, reply) => {
     reply.type('text/html; charset=utf-8').send(deckHtml);
   });
+
+  // Personal reference copy of the take-home brief — not repo content, not
+  // linked from anywhere; only registered if this checkout's private/ has
+  // the file (see .gitignore), so it's silently absent everywhere else.
+  const brief = await readFile(BRIEF_PATH).catch(() => null);
+  if (brief) {
+    server.fastify.get('/private/brief.pdf', async (_req, reply) => {
+      reply.type('application/pdf').send(brief);
+    });
+    log.info('personal reference route registered: /private/brief.pdf');
+  }
 
   await server.start();
 }

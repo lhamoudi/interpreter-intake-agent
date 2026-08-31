@@ -17,6 +17,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY public ./public
+# Not committed to git (see .gitignore) — present only if this local checkout has it.
+COPY private ./private
 
 EXPOSE 8000
 CMD ["node", "dist/index.js"]

@@ -5,3 +5,9 @@ dist/
 *.log
 .DS_Store
 .fly/
+
+# Never publish to the (public) repo — served on Fly only, ignored here.
+# (the directory itself is tracked via private/.gitkeep so `docker build`
+# never fails on a fresh clone that lacks the real file.)
+private/*
+!private/.gitkeep

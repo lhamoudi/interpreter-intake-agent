@@ -74,8 +74,12 @@ dead-ending the caller.
 
 Effectively all of it, with Claude Code, and this write-up's own trail is part of the answer.
 I planned before building: researched the real TAC/ConversationRelay API surface against the
-installed package (not from memory), made the load-bearing decisions up front (use case, model,
-host, persistence, which bonuses), and time-boxed the one genuine risk. The build was
+installed package, and made the pivotal decisions up front (use case, model, hosting,
+persistence, which bonuses). The one genuine technical risk was hosting: an early plan put the
+app on Cloudflare Workers, where Fastify can't run (no port binding), which would have forced a
+risky port of TAC's core to a Workers-native adapter with no guarantee it runs under
+`nodejs_compat`. Rather than gamble a spike on it, I **designed the risk out** — Fly.io runs the
+stock `TACServer` unmodified, so there was nothing to port. The build was
 verification-driven — each feature has a runnable smoke script under `src/smoke/` that exercises
 the real agent against scripted turns, plus a unit test suite around the completeness gate. That
 loop caught real bugs a demo would have surfaced live: an agent turn that spoke only a tool call
@@ -86,18 +90,21 @@ tested by ear on real calls.
 
 ## What I'd build next (another week)
 
-- **Cross-channel (SMS ⇄ voice).** The agent loop is already channel-agnostic, so adding
-  `SMSChannel` alongside `VoiceChannel` gives interchangeable booking by text or voice, with
-  the SMS path resolving to an emailed/texted video link. It's a small build — **blocked only
-  by A2P/toll-free SMS verification** on this account, which I ran into for real (below).
-- **A member portal + 10-digit code identity.** Members register (email) and get a code the
-  IVR validates first; the caller is then *identified*, so the video link goes to the email on
-  file and the SMS-delivery problem disappears. This turns the caller-hash memory into a real
-  member identity.
-- **Live AI interpretation** as an actual operating mode (bidirectional real-time translation),
-  which the "AI" tier currently offers but routes to a human.
-- **A Flex plugin** rendering the handoff attributes as a clean card — or, since the customer
-  already has an interpreter Flex plugin, mapping our task attributes onto its existing fields.
+- **SMS channel .** The agent loop is already channel-agnostic, so adding `SMSChannel` alongside 
+  `VoiceChannel` gives interchangeable booking by text or voice, with the SMS path resolving to 
+  an emailed/texted video link. It's a small build — **blocked only by A2P/toll-free SMS 
+  verification** on this account, which I ran into (below). SMS is also a perfect **deflection** 
+  channel: to guide high-cost PSTN callers to the web portal (audio-only video room), where the 
+  cost reduces to WebRTC pricing. We used email for this in the demo build - for ease of setup.
+- **Integrate to customer's member portal platform + 10-digit code identity.** Members register
+  online and get a unique code the IVR validates first; the caller is then *identified*, so the 
+  video link goes to the caller's email. This turns the crude caller memory DB table into a real
+  member identity, and improves over simply associating by caller ANI.
+- **Live AI interpretation** as an actual operating mode (bidirectional real-time translation).
+  It's offered in the demo build, but not built out. This is likely the direction the customer is
+  moving in already from a product offering perspective. 
+- **A Flex plugin** rendering the handoff attributes as a clean UI component — or, since the customer
+  already has a robust interpreter Flex plugin, mapping our task attributes onto its existing fields.
 
 ## What I'd change for production
 
@@ -107,16 +114,17 @@ tested by ear on real calls.
   call — any other machine has amnesia. To scale, each call's state moves to its own
   addressable per-call unit keyed by `CallSid` (a Cloudflare Durable Object), so any node can 
   look it up and serve any socket. 
-- **Hardening** — the brief lists this as a non-goal, so I scoped it deliberately. The one
-  control I kept on is **Twilio webhook signature validation** (the public `/twiml` endpoint
-  rejects any request not signed by Twilio — non-negotiable even for a prototype). For
-  production I'd add: **retries with backoff around Turso** so a transient network blip never
-  drops a completed interpreter request (today a DB failure is caught and logged, best-effort);
-  **rate limiting** per caller/IP on the public endpoints to cap abuse and runaway Twilio /
+- **Hardening.** For production I'd add: **retries with backoff around Turso** so a transient 
+  network blip never drops a completed interpreter request (today a DB failure is caught and 
+  logged); **rate limiting** per caller/IP on the public endpoints to cap abuse and runaway Twilio /
   Anthropic / Turso spend; and **secret rotation** — the API keys are set-once in Fly secrets
   today, and would move to short-lived, rotatable credentials in a secrets manager.
-- **Deliverability** for the video email (SPF/DKIM on the sending domain — it currently lands
-  in spam as a fresh sender), and real toll-free/10DLC registration to unlock SMS.
+- **Deliverability** for the video email (needs SPF/DKIM records on the sending domain — as it 
+  currently lands in spam as a fresh sender), and real toll-free/10DLC registration to unlock SMS.
+- **AWS Stack.** I would likely opt away from the multiple vendors (Fly.io, Turso, Cloudflare) and 
+  opt for the entire infrastructure living on the AWS stack (API Gateway, Lambdas, Dynamo, Route 53)
+  - to better align with the customer's tech stack and simplify deployment, troubleshooting, 
+  maintenance and observability.  
 
 ## What surprised me / got stuck on
 

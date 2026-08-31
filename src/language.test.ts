@@ -69,13 +69,24 @@ describe('twimlPresetFor', () => {
 });
 
 describe('SUPPORTED_LANGUAGE_DECLARATIONS', () => {
-  it('declares exactly the three supported locales, each with a voice', () => {
+  it('declares exactly the three supported locales', () => {
     expect(SUPPORTED_LANGUAGE_DECLARATIONS).toHaveLength(3);
     const codes = SUPPORTED_LANGUAGE_DECLARATIONS.map((d) => d.code).sort();
     expect(codes).toEqual(['en-US', 'es-US', 'fr-FR']);
+  });
+
+  it('pins a Google voice for the non-English locales', () => {
     for (const d of SUPPORTED_LANGUAGE_DECLARATIONS) {
+      if (d.code === 'en-US') continue;
       expect(d.voice).toBeTruthy();
       expect(d.ttsProvider).toBe('Google');
     }
+  });
+
+  it('leaves English unpinned so CR uses its default (ElevenLabs) voice', () => {
+    const en = SUPPORTED_LANGUAGE_DECLARATIONS.find((d) => d.code === 'en-US');
+    expect(en).toBeDefined();
+    expect('voice' in en!).toBe(false);
+    expect('ttsProvider' in en!).toBe(false);
   });
 });

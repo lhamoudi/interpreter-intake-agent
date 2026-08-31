@@ -39,13 +39,16 @@ const fakeWs = {
 // Minimal stub — the agent only calls getWebsocket() on it.
 const fakeVoice = { getWebsocket: () => fakeWs } as unknown as VoiceChannel;
 
-// A Spanish-speaking caller who then switches to English, then back to Spanish —
-// exercises detection, the target-language default, the switch-back voice, and
-// the anti-thrash guard (the repeated Spanish turn must NOT re-send).
+// A caller who starts in English, ASKS to continue in Spanish (the reliable
+// trigger — a request phrased in English transcribes fine), then switches back.
+// Exercises the switch mechanism, the target-language default, the switch-back,
+// and the anti-thrash guard. NOTE: in production the switch is driven by the
+// caller asking; cold turn-1 detection from a mistranscribed foreign utterance is
+// deliberately NOT relied on (English STT can't transcribe it well enough).
 const turns = [
-  'Hola, necesito un intérprete. Mi paciente habla mandarín.', // Spanish; third party = Mandarin
-  'Actually, let me continue in English — no gender preference.', // switch to English
-  'Sí, prefiero seguir en español, es para una cita médica.', // switch back to Spanish
+  'Hi, I need an interpreter. Can we continue in Spanish, please?', // asks to switch to Spanish
+  'Mi paciente habla mandarín, es para una cita médica.', // now conversing in Spanish; third party = Mandarin
+  'Actually let us switch back to English — no gender preference.', // switch back to English
 ];
 
 function langMessages() {

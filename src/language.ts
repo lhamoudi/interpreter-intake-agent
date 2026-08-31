@@ -31,17 +31,21 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
  * Adding a language means declaring it here with a validated Google voice and
  * testing it on a real call — don't add unverified ones.
  *
- * `transcription` = STT locale, `tts` = TTS locale, `ttsProvider`/`voice` pin the
- * exact synthesis voice.
+ * `transcription` = STT locale, `tts` = TTS locale. `ttsProvider`/`voice` pin an
+ * exact synthesis voice — set ONLY for the non-English locales. English is left
+ * unpinned so ConversationRelay uses its default TTS (ElevenLabs), which is the
+ * higher-quality voice callers hear on an English-only call; pinning an explicit
+ * Google voice for English audibly degraded it.
  */
 interface LangCodes {
   transcription: string;
   tts: string;
-  ttsProvider: string;
-  voice: string;
+  ttsProvider?: string;
+  voice?: string;
 }
 
-const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: 'Google', voice: 'en-US-Neural2-C' };
+// English: no explicit voice/provider — inherit CR's default (ElevenLabs).
+const EN: LangCodes = { transcription: 'en-US', tts: 'en-US' };
 const ES: LangCodes = { transcription: 'es-US', tts: 'es-US', ttsProvider: 'Google', voice: 'es-US-Neural2-A' };
 const FR: LangCodes = { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: 'Google', voice: 'fr-FR-Neural2-F' };
 
@@ -111,18 +115,23 @@ export function isEnglish(name: string | undefined): boolean {
 /**
  * The supported locales as ConversationRelay `<Language>` child declarations for
  * the initial TwiML (`defaultTwimlOptions.languages`, and every onInboundCallTwiml
- * return — the array replaces wholesale, so it must be present in each). Each
- * carries an explicit `ttsProvider` + `voice`: a bare `<Language code=...>` with
- * no voice broke the call entirely against CR's default provider. English IS
- * declared (with its own Google voice) so switching BACK to English mid-call finds
- * a voice — otherwise English comes out in the previous language's accented voice.
+ * return — the array replaces wholesale, so it must be present in each). The
+ * non-English locales carry an explicit Google `ttsProvider` + `voice`. English is
+ * declared too (so switching BACK to it mid-call finds a voice), but WITHOUT an
+ * explicit voice, so CR uses its default (ElevenLabs) — pinning a Google voice for
+ * English audibly degraded the base call. `voice`/`ttsProvider` keys are omitted
+ * entirely when unset (CR's schema is strict about undefined values).
  */
 export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
   // Dedup by tts code — LANGUAGES has multiple name aliases per locale.
   new Map(
     Object.values(LANGUAGES).map((c) => [
       c.tts,
-      { code: c.tts, ttsProvider: c.ttsProvider, voice: c.voice },
+      {
+        code: c.tts,
+        ...(c.ttsProvider ? { ttsProvider: c.ttsProvider } : {}),
+        ...(c.voice ? { voice: c.voice } : {}),
+      },
     ]),
   ).values(),
 );
@@ -133,15 +142,15 @@ export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
  * their language. Undefined for English/unknown (the base greeting handles those).
  */
 export function twimlPresetFor(name: string | undefined):
-  | { ttsLanguage: string; transcriptionLanguage: string; voice: string; ttsProvider: string }
+  | { ttsLanguage: string; transcriptionLanguage: string; voice?: string; ttsProvider?: string }
   | undefined {
   const codes = resolveLanguage(name);
   if (!codes || codes.tts === 'en-US') return undefined;
   return {
     ttsLanguage: codes.tts,
     transcriptionLanguage: codes.transcription,
-    voice: codes.voice,
-    ttsProvider: codes.ttsProvider,
+    ...(codes.voice ? { voice: codes.voice } : {}),
+    ...(codes.ttsProvider ? { ttsProvider: codes.ttsProvider } : {}),
   };
 }
 

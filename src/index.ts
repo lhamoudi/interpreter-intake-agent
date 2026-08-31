@@ -6,9 +6,15 @@
  */
 
 import 'dotenv/config';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { TAC, TACConfig, VoiceChannel, TACServer, createLogger } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DECK_PATH = path.join(__dirname, '..', 'public', 'deck.html');
 
 const log = createLogger({ name: 'server' });
 
@@ -65,6 +71,12 @@ async function main() {
   // Read-back for a coordinator/reviewer — not part of TAC's own routes.
   server.fastify.get('/health', async () => ({ status: 'ok' }));
   server.fastify.get('/requests', async () => ({ requests: await listRequests() }));
+
+  // Static demo-companion deck — one file, read once at startup, served as-is.
+  const deckHtml = await readFile(DECK_PATH, 'utf8');
+  server.fastify.get('/deck', async (_req, reply) => {
+    reply.type('text/html; charset=utf-8').send(deckHtml);
+  });
 
   await server.start();
 }

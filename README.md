@@ -11,6 +11,7 @@ scenario lacks — the caller may not speak English — and a hard-real-time han
 the handoff *is* the product.
 
 **Live number:** call **+1 833-918-3352** and ask for an interpreter.
+**Demo companion deck:** [intake.kingofthevegetables.com/deck](https://intake.kingofthevegetables.com/deck).
 
 ---
 

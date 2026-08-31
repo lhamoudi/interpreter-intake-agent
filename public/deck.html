@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interpreter Intake Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Dark-first console palette. :root = dark; light redefines tokens only. */
+  :root {
+    --ground: #0d1117;
+    --surface: #151b23;
+    --surface-2: #1b232d;
+    --line: #2a3440;
+    --ink: #e6edf3;
+    --muted: #8b96a3;
+    --accent: #2cc6d9;
+    --accent-ink: #062a30;
+    --warm: #f2a13c;
+    --good: #4cc38a;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #f5f8f9;
+      --surface: #ffffff;
+      --surface-2: #eef3f5;
+      --line: #d5dee3;
+      --ink: #14202a;
+      --muted: #5c6b77;
+      --accent: #0d94a6;
+      --accent-ink: #ffffff;
+      --warm: #b96e10;
+      --good: #1f8f5f;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #f5f8f9;
+    --surface: #ffffff;
+    --surface-2: #eef3f5;
+    --line: #d5dee3;
+    --ink: #14202a;
+    --muted: #5c6b77;
+    --accent: #0d94a6;
+    --accent-ink: #ffffff;
+    --warm: #b96e10;
+    --good: #1f8f5f;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-snap-type: y proximity; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .slide {
+    min-height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem clamp(1.25rem, 6vw, 6rem);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  .eyebrow {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: .78rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.4rem;
+  }
+  .eyebrow .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  h1, h2 {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+    line-height: 1.12;
+  }
+  h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 700; }
+  h2 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); font-weight: 600; }
+  p, li { max-width: 65ch; }
+  p.lead { font-size: 1.12rem; color: var(--muted); }
+  strong { color: var(--ink); }
+  em { color: var(--accent); font-style: normal; font-weight: 600; }
+  code, .mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .88em;
+  }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: .08em .38em;
+  }
+
+  /* waveform motif */
+  .wave { display: inline-flex; align-items: center; gap: 3px; height: 14px; }
+  .wave i { width: 3px; border-radius: 2px; background: var(--accent); display: block; }
+  .wave i:nth-child(1){height:5px}.wave i:nth-child(2){height:11px}
+  .wave i:nth-child(3){height:14px}.wave i:nth-child(4){height:8px}
+  .wave i:nth-child(5){height:12px}.wave i:nth-child(6){height:4px}
+  @media (prefers-reduced-motion: no-preference) {
+    .slide-title .wave i { animation: bounce 1.5s ease-in-out infinite alternate; }
+    .slide-title .wave i:nth-child(2){animation-delay:.12s}
+    .slide-title .wave i:nth-child(3){animation-delay:.24s}
+    .slide-title .wave i:nth-child(4){animation-delay:.36s}
+    .slide-title .wave i:nth-child(5){animation-delay:.48s}
+    .slide-title .wave i:nth-child(6){animation-delay:.6s}
+    @keyframes bounce { from { transform: scaleY(.45); } to { transform: scaleY(1.1); } }
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.6rem 0 0; padding: 0; list-style: none; }
+  .chips li {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .78rem;
+    padding: .35rem .7rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  .call-card {
+    margin-top: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 1.1rem 1.6rem;
+  }
+  .call-card .num {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(1.3rem, 3vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .call-card .lbl { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+
+  .quote {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 1rem 1.3rem;
+    border-radius: 0 10px 10px 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .95rem;
+    max-width: 60ch;
+    margin: 1.5rem 0;
+  }
+
+  .cols { display: grid; gap: 1.2rem; margin-top: 1.8rem; }
+  @media (min-width: 820px) { .cols-2 { grid-template-columns: 1fr 1fr; } .cols-3 { grid-template-columns: repeat(3, 1fr); } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+  }
+  .card h3 {
+    margin: 0 0 .5rem;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1rem;
+    display: flex; align-items: baseline; gap: .6rem;
+  }
+  .card p { font-size: .93rem; color: var(--muted); margin: .3rem 0 0; }
+  .card .tag {
+    font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    padding: .15rem .5rem; border-radius: 4px;
+    background: var(--surface-2); color: var(--accent); border: 1px solid var(--line);
+  }
+  .card.warm { border-color: var(--warm); }
+  .card.warm .tag { color: var(--warm); }
+
+  /* architecture flow */
+  .flow { display: flex; flex-direction: column; gap: 0; margin-top: 1.8rem; max-width: 46rem; }
+  .fnode {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .85rem 1.2rem;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .fnode b { font-family: "Space Grotesk", sans-serif; font-weight: 600; }
+  .fnode span { color: var(--muted); font-size: .85rem; font-family: "JetBrains Mono", monospace; }
+  .fnode.hot { border-color: var(--accent); }
+  .farrow {
+    align-self: center; color: var(--accent);
+    font-family: "JetBrains Mono", monospace; font-size: .8rem;
+    padding: .3rem 0; display: flex; gap: .6rem; align-items: center;
+  }
+  .fsplit { display: grid; gap: .8rem; margin-top: .8rem; }
+  @media (min-width: 820px) { .fsplit { grid-template-columns: 1fr 1fr 1fr; } }
+  .fsplit .fnode { flex-direction: column; align-items: flex-start; gap: .2rem; }
+
+  .steps { counter-reset: s; list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .9rem; max-width: 62ch; }
+  .steps li { counter-increment: s; display: flex; gap: 1rem; align-items: baseline; }
+  .steps li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: "JetBrains Mono", monospace;
+    color: var(--accent); font-size: .8rem; min-width: 2ch;
+  }
+
+  .footnote { margin-top: 2rem; font-size: .85rem; color: var(--muted); max-width: 65ch; }
+  .footnote code { font-size: .95em; }
+
+  kbd {
+    font-family: "JetBrains Mono", monospace; font-size: .75rem;
+    border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 4px; padding: .1rem .4rem; background: var(--surface);
+  }
+  .navhint { position: fixed; right: 1.2rem; bottom: 1rem; font-size: .75rem; color: var(--muted); }
+  @media (max-width: 640px) { .navhint { display: none; } }
+
+  a { color: var(--accent); }
+  a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<!-- 01 · Title -->
+<section class="slide slide-title">
+  <div class="eyebrow"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span> Twilio FDE take-home · demo companion</div>
+  <h1>Interpreter Intake Agent</h1>
+  <p class="lead">A conversational voice agent that answers the call, books an
+  over-the-phone interpreter, and hands off to a human — with the caller still on the line.</p>
+  <ul class="chips">
+    <li>Agent Connect</li><li>ConversationRelay</li><li>Claude Haiku 4.5</li>
+    <li>Flex</li><li>Studio</li><li>Twilio Video</li><li>Turso</li><li>Fly.io</li>
+  </ul>
+  <div class="call-card">
+    <div>
+      <div class="lbl">Call it now</div>
+      <div class="num">+1 833 918 3352</div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 · Thesis -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">02</span> The use case</div>
+  <h2>The front door is the upgrade</h2>
+  <p>I was previously embedded with a large interpretation provider's dev team — we built
+  their IVR intake and the overflow routing behind it. The routing is smart;
+  the intake in front of it is a <strong>fixed-path, DTMF-only IVR</strong>: one intent
+  at a time, menu by menu.</p>
+  <p>A conversational agent takes every intent at once, in any order:</p>
+  <div class="quote">"I need a Spanish-to-English interpreter, male, for a doctor visit —
+  and I need them immediately."</div>
+  <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters to the
+  clinicians, lawyers, and community workers standing next to someone they can't talk to.
+  And in this product, <strong>the handoff <em>is</em> the product</strong> — so complete
+  capture is non-negotiable.</p>
+</section>
+
+<!-- 03 · Architecture -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">03</span> Architecture</div>
+  <h2>One held socket, one small surface</h2>
+  <div class="flow">
+    <div class="fnode"><b>Caller (PSTN)</b><span>+1 833 918 3352</span></div>
+    <div class="farrow">▼ POST /twiml → &lt;Connect&gt;&lt;ConversationRelay&gt;</div>
+    <div class="fnode"><b>ConversationRelay</b><span>STT ⇄ TTS · WebSocket held for the whole call</span></div>
+    <div class="farrow">▼ transcribed turns → onMessageReady</div>
+    <div class="fnode hot"><b>Stock TACServer on Fly.io</b><span>Claude tool loop · src/agent.ts</span></div>
+    <div class="fsplit">
+      <div class="fnode"><b>Anthropic</b><span>the agent's reasoning</span></div>
+      <div class="fnode"><b>Turso</b><span>requests · caller memory (hashed №)</span></div>
+      <div class="fnode"><b>Handoff</b><span>Studio → Flex · Video + email</span></div>
+    </div>
+  </div>
+  <p class="footnote">In-flight state lives in-process on one always-on machine, by design.
+  Durable state → Turso. Cross-call memory → a salted hash of the caller's number, which is
+  what makes "welcome back" work. Fronted by a Cloudflare-managed domain, DNS-only.</p>
+</section>
+
+<!-- 04 · Completeness gate -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">04</span> LLM integration</div>
+  <h2>The model proposes. The server decides.</h2>
+  <p>Claude fills intake slots through typed tools — but it never decides the intake is
+  done. A <strong>deterministic server-side gate</strong>
+  (<code>checkComplete</code> vs <code>REQUIRED_SLOTS</code>) is the only thing that
+  permits handoff. Completeness is code, not model judgement.</p>
+  <div class="cols cols-2">
+    <div class="card">
+      <h3><span class="tag">tools</span></h3>
+      <p><code>record_intake</code> — partial slot updates, merged server-side<br>
+      <code>choose_service_tier</code> — AI / human / video<br>
+      <code>request_handoff</code> — validated, then live transfer<br>
+      <code>decline_request</code> — graceful exit for non-leads</p>
+    </div>
+    <div class="card">
+      <h3><span class="tag">edge cases</span></h3>
+      <p>Hang-up mid-flow → partial persisted as <code>abandoned</code><br>
+      Changed answer → confirmed, never silently overwritten<br>
+      Out-of-scope question → declined, steered back — no guessing<br>
+      Spam / wrong number → <code>decline_request</code>, audited</p>
+    </div>
+  </div>
+</section>
+
+<!-- 05 · Deflection -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">05</span> Product sense</div>
+  <h2>Three tiers, priced like the real business</h2>
+  <p>Once the intake is complete, the agent offers the caller a choice — modelled on the
+  actual unit economics of an interpretation network.</p>
+  <div class="cols cols-3">
+    <div class="card">
+      <h3>AI interpreter <span class="tag">lowest cost</span></h3>
+      <p>Offered now; live bidirectional interpretation is roadmap — today it routes to a
+      human so no caller is stranded.</p>
+    </div>
+    <div class="card">
+      <h3>Human interpreter <span class="tag">premium</span></h3>
+      <p>Live transfer on this call, straight into Flex. Best for sensitive or complex
+      matters.</p>
+    </div>
+    <div class="card warm">
+      <h3>Video room <span class="tag">webrtc</span></h3>
+      <p>A real Twilio Video room per request, join link emailed. Screenshare a form or
+      letter — and <strong>PSTN per-minute cost drops away</strong>.</p>
+    </div>
+  </div>
+  <p class="footnote">Any failure on the video path falls back to a human — the caller
+  never dead-ends.</p>
+</section>
+
+<!-- 06 · Flex handoff -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">06</span> Human handoff</div>
+  <h2>Live transfer into Flex — with the context attached</h2>
+  <ol class="steps">
+    <li>Server sets <code>session.pendingHandoffData</code> with the full lead as task attributes.</li>
+    <li>TAC emits the ConversationRelay <code>end</code> message after the agent's final words.</li>
+    <li>ConversationRelay POSTs it to the <code>&lt;Connect action&gt;</code> URL — a Studio Flow.</li>
+    <li>The Flow's Send-to-Flex widget creates the TaskRouter task; an interpreter accepts the live call.</li>
+  </ol>
+  <p class="footnote">The platform subtlety: in voice-only mode TAC's convenience helper
+  <code>createStudioHandoffTool</code> throws — the documented path is the
+  <code>pendingHandoffData</code> mechanism above. Set a property, don't call a helper.
+  Easy to miss; worth knowing.</p>
+</section>
+
+<!-- 07 · Hard bits -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">07</span> Honest scoping</div>
+  <h2>What fought back</h2>
+  <div class="cols cols-3">
+    <div class="card">
+      <h3>A2P 10DLC <span class="tag">error 30034</span></h3>
+      <p>Carriers block unregistered SMS outright. The video link moved to email, and the
+      cross-channel bonus is gated on toll-free verification. On telephony,
+      <strong>compliance is architecture</strong>.</p>
+    </div>
+    <div class="card">
+      <h3>Mid-call language switch</h3>
+      <p>STT switched; TTS needed per-locale <code>&lt;Language&gt;</code> voices; the model
+      kept writing English. Three separate layers. Parked deliberately — two working
+      features beat five broken ones.</p>
+    </div>
+    <div class="card">
+      <h3>Hosting risk — designed out</h3>
+      <p>Fastify can't bind a port on Workers, so TAC would need porting. Chose Fly.io
+      instead: the stock server runs unmodified. <strong>Removed the risk with a decision,
+      not a gamble.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- 08 · Demo + next -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">08</span> Demo</div>
+  <h2>Try it, then ask me anything</h2>
+  <div class="call-card">
+    <div>
+      <div class="lbl">Live now</div>
+      <div class="num">+1 833 918 3352</div>
+    </div>
+  </div>
+  <p style="margin-top:1.6rem">Say a language, a preference, what it's about — in any
+  order. Pick a tier. Watch the task land in Flex. Call twice and it remembers you.</p>
+  <div class="cols cols-2">
+    <div class="card">
+      <h3><span class="tag">next week</span></h3>
+      <p>SMS as a peer booking channel · member portal + code identity ·
+      practice- and language-specific TaskRouter routing · live AI interpretation ·
+      Flex plugin field mapping</p>
+    </div>
+    <div class="card">
+      <h3><span class="tag">production</span></h3>
+      <p>Per-call actor for horizontal scale · retries + rate limits + secret rotation ·
+      SPF/DKIM deliverability · consolidate onto the customer's AWS stack</p>
+    </div>
+  </div>
+  <p class="footnote">Repo: <span class="mono">github.com/lhamoudi/interpreter-intake-agent</span>
+  — see <span class="mono">WRITEUP.md</span> for the full rationale.</p>
+</section>
+
+<div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "PageDown" && e.key !== "PageUp") return;
+    const y = scrollY + innerHeight / 2;
+    let i = slides.findIndex(s => s.offsetTop <= y && y < s.offsetTop + s.offsetHeight);
+    if (i < 0) i = 0;
+    const next = (e.key === "ArrowDown" || e.key === "PageDown") ? Math.min(i + 1, slides.length - 1) : Math.max(i - 1, 0);
+    if (next !== i) { e.preventDefault(); slides[next].scrollIntoView({ behavior: "smooth" }); }
+  });
+</script>
+</body>
+</html>

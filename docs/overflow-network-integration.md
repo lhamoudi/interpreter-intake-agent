@@ -87,18 +87,15 @@ on breach, and re-enqueues the call to the original workflow if every partner is
 intake agent in this repo is the piece that makes every one of those routed tasks start with
 complete, structured context.
 
-## Why the front door matters — and needs an upgrade
+## Where the intake experience fits
 
-An intelligent, CX-oriented overflow routing solution is only useful if people want to call in
-and use the platform. If the upfront intake experience is not smooth and speedy — and a
-fixed-path, DTMF-only IVR is not — then callers may seek out alternative interpretation services
-that align with modern CX trends.
+Good overflow routing behind a slow intake still starts every call slowly. A fixed-path,
+DTMF-only IVR makes the caller work through menus one intent at a time before any routing
+happens.
 
-Swapping a DTMF IVR for a **generative, agentic IVR** — using Twilio Agent Connect and
-ConversationRelay — lets callers traverse the intake path *conversationally* instead of waiting
-for menus and pushing buttons. The linear, one-intent-at-a-time DTMF flow gives way to a far more
-expedient conversational flow, where the caller can voice multiple intents at once, in any order:
+Swapping the DTMF IVR for a conversational agent — Twilio Agent Connect and
+ConversationRelay — lets the caller give several intents at once, in any order:
 *"I need a Spanish-to-English interpreter, male, for a doctor visit, and I need them immediately."*
-The agent captures everything asked for instantly, confirms it, and proceeds to route the call.
-That acceleration can be critical for medical practitioners, lawyers, and community workers — who
-often need immediate support when encountering someone who doesn't speak their language.
+The agent captures it, confirms, and routes in one turn. That matters most for the medical
+practitioners, lawyers, and community workers who need an interpreter the moment they're with
+someone they can't talk to.

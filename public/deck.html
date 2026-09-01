@@ -448,18 +448,16 @@
 <!-- 02 · Thesis -->
 <section class="slide">
   <div class="eyebrow"><span class="n">02</span> The use case</div>
-  <h2>The front door is the upgrade</h2>
-  <p>I was previously embedded with a large interpretation provider's dev team — we built
-  their IVR intake and the overflow routing behind it. The routing is smart;
-  the intake in front of it is a <strong>fixed-path, DTMF-only IVR</strong>: one intent
-  at a time, menu by menu.</p>
+  <h2>Conversational intake in front of the routing</h2>
+  <p>I was previously embedded with a large interpretation provider's dev team, building
+  their IVR intake and the overflow routing behind it. The intake in front of that routing
+  is a <strong>fixed-path, DTMF-only IVR</strong>: one intent at a time, menu by menu.</p>
   <p>A conversational agent takes every intent at once, in any order:</p>
   <div class="quote">"I need a Spanish-to-English interpreter, male, for a doctor visit —
   and I need them immediately."</div>
   <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters to the
   clinicians, lawyers, and community workers standing next to someone they can't talk to.
-  And in this product, <strong>the handoff <em>is</em> the product</strong> — so complete
-  capture is non-negotiable.</p>
+  The handoff is the deliverable, so the intake has to capture everything before it.</p>
 </section>
 
 <!-- 03 · Architecture -->
@@ -565,15 +563,15 @@
     </div>
     <div class="card">
       <h3>Mid-call language switch</h3>
-      <p>STT switched; TTS needed per-locale <code>&lt;Language&gt;</code> voices; the model
-      kept writing English. Three separate layers. Parked deliberately — two working
-      features beat five broken ones.</p>
+      <p>Three layers had to line up: STT switched but TTS needed per-locale
+      <code>&lt;Language&gt;</code> voices, the model kept writing English, and the voice
+      sounded wrong until the <code>turbo_v2_5</code> ElevenLabs model. Working now — a live
+      call, not a smoke test, is what proved it.</p>
     </div>
     <div class="card">
-      <h3>Hosting risk — designed out</h3>
+      <h3>Hosting</h3>
       <p>Fastify can't bind a port on Workers, so TAC would need porting. Chose Fly.io
-      instead: the stock server runs unmodified. <strong>Removed the risk with a decision,
-      not a gamble.</strong></p>
+      instead: the stock server runs unmodified, so there was nothing to port.</p>
     </div>
   </div>
 </section>

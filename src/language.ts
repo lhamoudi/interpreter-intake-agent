@@ -54,7 +54,7 @@ interface LangCodes {
 // identical across languages and across a switch. Change this single ID to
 // re-voice the whole agent. Exported so the base greeting (defaultTwimlOptions)
 // uses the same voice as the conversation that follows.
-export const ELEVENLABS_VOICE = 's3TPKV1kjDlVtZbl4Ksh'; // calm/conversational male
+export const ELEVENLABS_VOICE = 'UgBBYS2sOqTuMpoF3BR0'; // "Mark" — CR's documented default ElevenLabs voice
 export const TTS_PROVIDER = 'ElevenLabs';
 
 const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };

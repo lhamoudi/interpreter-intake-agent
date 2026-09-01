@@ -247,13 +247,22 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
     // model on its very next hop, not just the next turn.
     const system =
       baseSystemPrompt() + memoryPreamble(state.memory) + languagePreamble(state.activeLanguage);
-    const res = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system,
-      tools: TOOLS,
-      messages: state.history,
-    });
+    let res: Anthropic.Message;
+    try {
+      res = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        system,
+        tools: TOOLS,
+        messages: state.history,
+      });
+    } catch (err) {
+      // The model is unreachable (out of credits, outage, timeout). Never leave
+      // the caller in dead air: apologise in their language and route the live
+      // call into the human queue via the same Studio→Flex handoff path.
+      log.error({ conversationId: convId, err }, 'model call failed — routing caller to queue');
+      return failToQueue(state, deps);
+    }
 
     state.history.push({ role: 'assistant', content: res.content });
 
@@ -287,6 +296,43 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   // words, don't hand the channel an empty string — on a live call that reads
   // as dead air.
   return spoken.join(' ') || 'Got it, thank you.';
+}
+
+/** Apology spoken when the model is unreachable, in the caller's active language. */
+const QUEUE_FALLBACK: Record<string, string> = {
+  English:
+    "I'm sorry — I'm having a technical problem on my end. Let me connect you with a person who " +
+    'can help. Please stay on the line.',
+  Spanish:
+    'Lo siento, tengo un problema técnico. Le voy a comunicar con una persona que puede ayudarle. ' +
+    'Por favor, no cuelgue.',
+  French:
+    'Je suis désolé, je rencontre un problème technique. Je vais vous mettre en relation avec une ' +
+    'personne qui peut vous aider. Veuillez rester en ligne.',
+};
+
+/**
+ * Graceful degradation when the model call fails (out of credits, outage,
+ * timeout). Routes the LIVE call into the human queue via the same Studio→Flex
+ * handoff mechanism the human tier uses, and returns a spoken apology in the
+ * caller's language — never dead air. Best-effort: even if persistence or the
+ * session payload fails, we still return words to speak.
+ */
+function failToQueue(state: CallState, deps: Deps): string {
+  const conversationId = deps.conversationId as string;
+  try {
+    if (deps.session && !state.handoffDone) {
+      state.handoffDone = true;
+      deps.session.pendingHandoffData = {
+        type: 'end',
+        handoffData: buildHandoffData(conversationId, state.intake),
+      };
+      log.info({ conversationId }, 'fallback handoff payload set — routing to Flex queue');
+    }
+  } catch (err) {
+    log.error({ conversationId, err }, 'failed to set fallback handoff payload');
+  }
+  return QUEUE_FALLBACK[state.activeLanguage ?? 'English'] ?? QUEUE_FALLBACK.English;
 }
 
 function textOf(content: Anthropic.ContentBlock[]): string {

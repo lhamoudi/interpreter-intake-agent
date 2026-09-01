@@ -1,11 +1,11 @@
 /**
- * Smoke test for FR/EN/ES mid-call language detection + switching — needs
+ * Smoke test for FR/EN/ES mid-call language detection + switching - needs
  * ANTHROPIC_API_KEY, nothing else. Drives the real agent loop against scripted
  * turns with a FAKE voice channel whose getWebsocket records the ConversationRelay
  * `language` control messages, so we can assert the switch fired (and only when
  * the language actually changed) without a phone.
  *
- * The TTS voice itself can only be verified by ear on a live call — this proves
+ * The TTS voice itself can only be verified by ear on a live call - this proves
  * the wiring: the right control message is sent, the bot's own replies follow the
  * language, targetLanguage defaults to the caller's language, and the third
  * party's sourceLanguage is still collected as a separate question.
@@ -19,7 +19,7 @@ import { runAgent, initCall } from '../agent.js';
 import type { ConversationId, VoiceChannel } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('ANTHROPIC_API_KEY is not set — export it or add it to .env first.');
+  console.error('ANTHROPIC_API_KEY is not set - export it or add it to .env first.');
   process.exit(1);
 }
 
@@ -36,11 +36,11 @@ const fakeWs = {
     }
   },
 };
-// Minimal stub — the agent only calls getWebsocket() on it.
+// Minimal stub - the agent only calls getWebsocket() on it.
 const fakeVoice = { getWebsocket: () => fakeWs } as unknown as VoiceChannel;
 
 // A caller who starts in English, ASKS to continue in Spanish (the reliable
-// trigger — a request phrased in English transcribes fine), then switches back.
+// trigger - a request phrased in English transcribes fine), then switches back.
 // Exercises the switch mechanism, the target-language default, the switch-back,
 // and the anti-thrash guard. NOTE: in production the switch is driven by the
 // caller asking; cold turn-1 detection from a mistranscribed foreign utterance is
@@ -48,7 +48,7 @@ const fakeVoice = { getWebsocket: () => fakeWs } as unknown as VoiceChannel;
 const turns = [
   'Hi, I need an interpreter. Can we continue in Spanish, please?', // asks to switch to Spanish
   'Mi paciente habla mandarín, es para una cita médica.', // now conversing in Spanish; third party = Mandarin
-  'Actually let us switch back to English — no gender preference.', // switch back to English
+  'Actually let us switch back to English - no gender preference.', // switch back to English
 ];
 
 function langMessages() {
@@ -89,8 +89,8 @@ async function main() {
   const pass = sawSpanish && sawEnglish && noThrash;
   console.log(
     pass
-      ? `\nPASS — detected + switched across languages (${msgs.length} switch messages, no thrash).`
-      : `\nFAIL — sawSpanish=${sawSpanish} sawEnglish=${sawEnglish} count=${msgs.length} (expected ≤3).`,
+      ? `\nPASS - detected + switched across languages (${msgs.length} switch messages, no thrash).`
+      : `\nFAIL - sawSpanish=${sawSpanish} sawEnglish=${sawEnglish} count=${msgs.length} (expected ≤3).`,
   );
   if (!pass) process.exit(1);
 }

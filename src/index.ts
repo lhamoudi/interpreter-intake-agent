@@ -1,6 +1,6 @@
 /**
  * Entry point: wires the stock Fastify TACServer to the Claude tool loop in
- * src/agent.ts. Deliberately thin — TAC owns TwiML, the WebSocket loop, and
+ * src/agent.ts. Deliberately thin - TAC owns TwiML, the WebSocket loop, and
  * session lifecycle; this file only bridges its callbacks to our agent and
  * adds two read-only routes for the demo/coordinator.
  */
@@ -22,7 +22,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DECK_PATH = path.join(__dirname, '..', 'public', 'deck.html');
-// Not committed to git — see .gitignore. Present only when this checkout's
+// Not committed to git - see .gitignore. Present only when this checkout's
 // private/ has the real file; served only if it does, so a fresh clone
 // without it still runs cleanly (no route is registered).
 const BRIEF_PATH = path.join(__dirname, '..', 'private', 'fde-take-home-brief.pdf');
@@ -31,10 +31,10 @@ const log = createLogger({ name: 'server' });
 
 // Trilingual invitation: the agent can converse in English, Spanish, or French.
 // The call opens in English; the caller switches by asking (cold turn-1
-// detection from a mistranscribed foreign utterance is not relied on — see
+// detection from a mistranscribed foreign utterance is not relied on - see
 // language.ts). A returning caller is instead preset to their known language.
 const NEW_CALLER_GREETING =
-  'Thanks for calling. I can connect you with an interpreter — you can speak to me in English, ' +
+  'Thanks for calling. I can connect you with an interpreter - you can speak to me in English, ' +
   'Spanish, or French. Puede hablarme en español. Vous pouvez me parler en français. ' +
   'How can I help you today?';
 
@@ -69,7 +69,7 @@ async function main() {
   // Greet a returning caller before the first agent turn, using the number in
   // hand at answer time. If we know the language they last spoke to us in, greet
   // them in it AND preset the STT/TTS voice so the first word is already in their
-  // language. Every return re-declares `languages` — the array replaces wholesale,
+  // language. Every return re-declares `languages` - the array replaces wholesale,
   // so omitting it would drop the <Language> children and revert TTS to English.
   voiceChannel.onInboundCallTwiml(async (req) => {
     const memory = await lookupCallerByAddress(req.from);
@@ -101,17 +101,17 @@ async function main() {
 
   const server = new TACServer(tac);
 
-  // Read-back for a coordinator/reviewer — not part of TAC's own routes.
+  // Read-back for a coordinator/reviewer - not part of TAC's own routes.
   server.fastify.get('/health', async () => ({ status: 'ok' }));
   server.fastify.get('/requests', async () => ({ requests: await listRequests() }));
 
-  // Static demo-companion deck — one file, read once at startup, served as-is.
+  // Static demo-companion deck - one file, read once at startup, served as-is.
   const deckHtml = await readFile(DECK_PATH, 'utf8');
   server.fastify.get('/deck', async (_req, reply) => {
     reply.type('text/html; charset=utf-8').send(deckHtml);
   });
 
-  // Personal reference copy of the take-home brief — not repo content, not
+  // Personal reference copy of the take-home brief - not repo content, not
   // linked from anywhere; only registered if this checkout's private/ has
   // the file (see .gitignore), so it's silently absent everywhere else.
   const brief = await readFile(BRIEF_PATH).catch(() => null);

@@ -13,7 +13,7 @@ export const RECORD_INTAKE: Anthropic.Tool = {
   name: 'record_intake',
   description:
     'Record or update what you have learned about the interpreter request. Call this ' +
-    'whenever the caller gives you a new detail. All fields are optional — send only ' +
+    'whenever the caller gives you a new detail. All fields are optional - send only ' +
     'what you just learned; previous values are retained.',
   input_schema: {
     type: 'object',
@@ -22,14 +22,14 @@ export const RECORD_INTAKE: Anthropic.Tool = {
       sourceLanguage: {
         type: 'string',
         description:
-          'The language of the THIRD PARTY the caller needs interpreted — their patient, client, ' +
+          'The language of the THIRD PARTY the caller needs interpreted - their patient, client, ' +
           'or the person they are trying to talk to, e.g. "Spanish", "Mandarin". You must ASK for ' +
           'this; it is NOT the language the caller is speaking to you (that is set_caller_language).',
       },
       targetLanguage: {
         type: 'string',
         description:
-          'The language the third party is interpreted INTO — i.e. the caller\'s own language. ' +
+          'The language the third party is interpreted INTO - i.e. the caller\'s own language. ' +
           'This defaults to the language the caller is speaking to you (see set_caller_language); ' +
           'confirm it with them rather than asking from scratch.',
       },
@@ -45,7 +45,7 @@ export const RECORD_INTAKE: Anthropic.Tool = {
           'Subject area for interpreter matching. Map the caller\'s answer: healthcare / doctor / ' +
           'hospital / clinic / pharmacy → "medical"; court / lawyer / immigration / police / legal ' +
           'paperwork → "legal"; anything else (school, housing, benefits, utilities, general) → ' +
-          '"community". Optional — omit if the caller is unsure or declines.',
+          '"community". Optional - omit if the caller is unsure or declines.',
       },
       notes: { type: 'string', description: 'Anything else that matters for the interpreter. Optional.' },
     },
@@ -58,8 +58,8 @@ export const CHOOSE_SERVICE_TIER: Anthropic.Tool = {
     'Record which service option the caller chose after you have offered them the three ' +
     'ways to be served. Only call this once you have all required intake details and have ' +
     'presented the options and the caller has picked one. The options, with their tradeoffs:\n' +
-    '  - "ai": an AI interpreter can assist right now on this call — the lowest-cost option.\n' +
-    '  - "human": a professional human interpreter, connected live on this call — higher cost, ' +
+    '  - "ai": an AI interpreter can assist right now on this call - the lowest-cost option.\n' +
+    '  - "human": a professional human interpreter, connected live on this call - higher cost, ' +
     'best for sensitive or complex matters.\n' +
     '  - "video": we email them a link to join a video session, where they can use voice or ' +
     'video and share their screen or documents (for example a paper form or letter). This is ' +
@@ -101,7 +101,7 @@ export const SET_CALLER_LANGUAGE: Anthropic.Tool = {
   name: 'set_caller_language',
   description:
     'Set the language the CALLER is speaking to you. Call this when the caller asks to continue ' +
-    'in another language, or once they are clearly conversing in one — not from a garbled first ' +
+    'in another language, or once they are clearly conversing in one - not from a garbled first ' +
     'utterance. This is the language you converse in: it controls the voice you speak in and the ' +
     'transcription of what the caller says. It also defaults the interpreter\'s target language ' +
     '(what their third party gets interpreted into). It is NOT the third party\'s language (that ' +
@@ -123,7 +123,7 @@ export const SET_CALLER_LANGUAGE: Anthropic.Tool = {
 export const DECLINE_REQUEST: Anthropic.Tool = {
   name: 'decline_request',
   description:
-    'End the call when the caller is clearly not here for an interpreter — a wrong number, a ' +
+    'End the call when the caller is clearly not here for an interpreter - a wrong number, a ' +
     'sales/spam call, someone just testing, or an abusive caller. Only use this once it is clear; ' +
     'give a genuine caller the benefit of the doubt first. Pass a short reason for the record.',
   input_schema: {

@@ -3,16 +3,16 @@
  *
  * Once the required intake is complete, the caller is offered three ways to be
  * served, with an explicit cost/tradeoff framing:
- *   - AI interpretation now       — cheapest (roadmap; not a built operating mode)
- *   - human interpreter, live     — premium (transferred on this call into Flex)
- *   - Twilio Video Room link      — WebRTC, good for screensharing / paper
+ *   - AI interpretation now       - cheapest (roadmap; not a built operating mode)
+ *   - human interpreter, live     - premium (transferred on this call into Flex)
+ *   - Twilio Video Room link      - WebRTC, good for screensharing / paper
  *                                   documents, and removes PSTN per-minute cost
  *
  * Only the Video Room path is actually actioned here: we create a real Twilio
  * Video Room and EMAIL the caller a join link (via SendGrid, Twilio-owned).
  *
  * Why email, not SMS: US A2P 10DLC registration gates SMS from local numbers
- * (unregistered sends fail with Twilio error 30034 — hit live on this account).
+ * (unregistered sends fail with Twilio error 30034 - hit live on this account).
  * Email sidesteps that carrier gate entirely. The production vision (a member
  * portal + 10-digit code identity, so the email is always on file) is documented
  * in WRITEUP as roadmap; for now the agent collects an email only on the video
@@ -53,7 +53,7 @@ function initSendgrid(): void {
   sendgridReady = true;
 }
 
-/** Lightweight email-shape check — enough to avoid an obviously bad send. */
+/** Lightweight email-shape check - enough to avoid an obviously bad send. */
 function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -70,7 +70,7 @@ export interface VideoDeflectionResult {
  * Create a Twilio Video Room and email the caller a join link.
  *
  * `toEmail` is the address the caller gave for the video session. Returns
- * ok:false with a reason on any failure — the caller flow degrades to a live
+ * ok:false with a reason on any failure - the caller flow degrades to a live
  * human transfer rather than dead-ending.
  */
 export async function deflectToVideoRoom(
@@ -89,7 +89,7 @@ export async function deflectToVideoRoom(
     const c = twilioClient();
 
     // A short-lived, single-purpose room keyed to this call. This account only
-    // accepts type "group" — go/group-small/peer-to-peer all return Twilio error
+    // accepts type "group" - go/group-small/peer-to-peer all return Twilio error
     // 53126 ("Legacy room type no longer supported") here, verified by probing
     // every type against the live account. "group" supports screensharing and
     // documents, which is the point of the video deflection.
@@ -104,7 +104,7 @@ export async function deflectToVideoRoom(
     // lists UI as an explicit non-goal). VIDEO_JOIN_BASE_URL is a placeholder, so
     // the link is well-formed and carries the real room name but has no page to
     // land on yet. Wiring a minimal Twilio Video JS join page + token endpoint is
-    // the documented next step — see WRITEUP.
+    // the documented next step - see WRITEUP.
     const base = process.env.VIDEO_JOIN_BASE_URL ?? 'https://video.example.com/join';
     const joinUrl = `${base}?room=${encodeURIComponent(room.uniqueName)}`;
     const isPlaceholder = base.includes('video.example.com');
@@ -124,7 +124,7 @@ export async function deflectToVideoRoom(
         'This link is good for the next little while. See you there.',
       html:
         '<p>Your interpreter video session is ready.</p>' +
-        `<p><a href="${joinUrl}">Join your session</a> — voice or video, and you can share ` +
+        `<p><a href="${joinUrl}">Join your session</a> - voice or video, and you can share ` +
         'your screen or documents.</p>' +
         (isPlaceholder
           ? '<p style="color:#888;font-size:12px">Demo note: the video session room is real, but ' +

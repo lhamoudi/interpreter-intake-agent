@@ -1,4 +1,4 @@
-# Write-up — Interpreter Intake Agent
+# Write-up - Interpreter Intake Agent
 
 ## The use case, and why
 
@@ -7,12 +7,12 @@ intake**, a domain I know well. I was previously embedded with a large interpret
 provider's development team, building out their IVR intake flow and the overflow routing
 and orchestration behind it. That real system routes overflow demand to partner interpreter
 networks with TaskRouter and Flex, but the intake in front of it is a **fixed-path,
-DTMF-only IVR** — one intent at a time, menu by menu.
+DTMF-only IVR** - one intent at a time, menu by menu.
 
 Replacing that with a conversational agent is what ConversationRelay and Agent Connect are
-for: a caller can voice several intents at once, in any order — *"I need a Spanish-to-English
-interpreter, male, for a doctor visit, and I need them immediately"* — and the agent captures
-all of it, confirms, and routes (even in one long utterance from the caller!). That speed matters when someone needs an interpreter right away — a doctor's visit, a legal appointment, a community intake call. The intake's job is to capture everything needed before the handoff to a human
+for: a caller can voice several intents at once, in any order - *"I need a Spanish-to-English
+interpreter, male, for a doctor visit, and I need them immediately"* - and the agent captures
+all of it, confirms, and routes (even in one long utterance from the caller!). That speed matters when someone needs an interpreter right away - a doctor's visit, a legal appointment, a community intake call. The intake's job is to capture everything needed before the handoff to a human
 interpreter happens, since that handoff is the actual point of the call. 
 
 The use case also carries a challenge real estate lacks: the caller may not speak English.
@@ -25,17 +25,17 @@ overflow network downstream.
 
 - **Agent Connect (TAC) + ConversationRelay** for the voice channel. TAC owns the
   WebSocket loop, TwiML, ASR/TTS and session lifecycle; this solution drives its `onMessageReady`
-  callback. Running the *stock* `TACServer` unmodified was a deliberate choice — it keeps
+  callback. Running the *stock* `TACServer` unmodified was a deliberate choice - it keeps
   the surface I own small and left nothing to port (see "what I'd change").
-- **Studio Flow → Flex** for the human handoff — a **live transfer**, not a message to a queue:
+- **Studio Flow → Flex** for the human handoff - a **live transfer**, not a message to a queue:
   the caller stays on the line and is connected to an interpreter who accepts the task in Flex,
   with the captured intake carried on the **task attributes** for use in a (future) Flex Plugin.
-- **Twilio Video** for the deflection tier — a real WebRTC room created per request. No video app
+- **Twilio Video** for the deflection tier - a real WebRTC room created per request. No video app
   was built for demo (future work deemed not best use of take-home time). 
 - **SendGrid** (Twilio-owned) to email the video join link - since SMS blocked by 10DLC/toll-free 
   verification delays.
 
-## Architectural overview — components, data flow, state
+## Architectural overview - components, data flow, state
 
 A caller hits the Twilio number → `POST /twiml` returns
 `<Connect><ConversationRelay wss://…/ws>` → ConversationRelay holds a WebSocket open for
@@ -60,19 +60,19 @@ dead air. A caller who clearly isn't a real request is declined, which persists 
 
 **Three languages, kept distinct.** The agent converses in English, Spanish, or French.
 Three language values are tracked separately: the *caller-spoken* language (what the caller
-speaks to the agent — drives its voice, transcription, and reply language), the
+speaks to the agent - drives its voice, transcription, and reply language), the
 `sourceLanguage` (the third party's language, always asked), and the `targetLanguage` (what
-the third party is interpreted into — the caller's own language, so it follows the caller's
+the third party is interpreted into - the caller's own language, so it follows the caller's
 language on a switch). Switching is caller-driven: the call opens in English and the caller
 asks to continue in another language. Detecting a foreign language automatically from the
-caller's first turn is deliberately not used — English transcription garbles a foreign first
-sentence badly enough that the model can't classify it — so it would fail for exactly the
+caller's first turn is deliberately not used - English transcription garbles a foreign first
+sentence badly enough that the model can't classify it - so it would fail for exactly the
 callers it's supposed to help. `src/language.ts` holds the voice/locale config and the switch
 mechanism.
 
 **Tiered deflection.** Once intake is complete, the agent offers three service tiers: AI
 (cheapest), human (premium, live transfer), or a **video room** whose link is emailed. This
-is modeled on the customer's actual unit economics — the video/WebRTC path avoids the PSTN
+is modeled on the customer's actual unit economics - the video/WebRTC path avoids the PSTN
 per-minute cost, which is the kind of tradeoff an interpreter network cares about. If the
 video path fails for any reason, it falls back to a human instead of leaving the caller
 stuck.
@@ -87,7 +87,7 @@ Fastify can't bind a port there, so running TAC would have meant porting it for 
 benefit. I chose Fly.io instead and run the stock `TACServer` unmodified, so there was
 nothing to port.
 
-The build was verification-driven — each feature has a runnable smoke script under `src/smoke/` 
+The build was verification-driven - each feature has a runnable smoke script under `src/smoke/` 
 that exercises the real agent against scripted turns, plus a unit test suite around the completeness 
 check. That loop caught real bugs a demo would have surfaced live: an agent turn that spoke only a tool call
 and produced dead air; "use the number I'm calling from" not resolving because the caller ID was
@@ -114,7 +114,7 @@ tested by ear on real calls.
 - **Live AI interpretation** as an actual operating mode (bidirectional real-time translation).
   It's offered in the demo build, but not built out. This is likely the direction the customer is
   moving in already from a product offering perspective. 
-- **A Flex plugin** rendering the handoff attributes as a clean UI component — or, since the customer
+- **A Flex plugin** rendering the handoff attributes as a clean UI component - or, since the customer
   already has a robust interpreter Flex plugin, mapping our task attributes onto its existing fields.
 
 ## What I'd change for production
@@ -122,15 +122,15 @@ tested by ear on real calls.
 - **Horizontal scale.** Today each call's state lives in a plain in-memory map inside the one
   Node process (`const calls` in `agent.ts`), which is correct only because I run exactly one
   machine. Add a second machine and the state is trapped on whichever one first answered the
-  call — any other machine has amnesia. To scale, each call's state moves to its own
+  call - any other machine has amnesia. To scale, each call's state moves to its own
   addressable per-call unit keyed by `CallSid` (a Cloudflare Durable Object), so any node can 
   look it up and serve any socket. 
 - **Hardening.** For production I'd add: **retries with backoff around Turso** so a transient 
   network blip never drops a completed interpreter request (today a DB failure is caught and 
   logged); **rate limiting** per caller/IP on the public endpoints to cap abuse and runaway Twilio /
-  Anthropic / Turso spend; and **secret rotation** — the API keys are set-once in Fly secrets
+  Anthropic / Turso spend; and **secret rotation** - the API keys are set-once in Fly secrets
   today, and would move to short-lived, rotatable credentials in a secrets manager.
-- **Deliverability** for the video email (needs SPF/DKIM records on the sending domain — as it 
+- **Deliverability** for the video email (needs SPF/DKIM records on the sending domain - as it 
   currently lands in spam as a fresh sender), and real toll-free/10DLC registration to enable SMS.
 - **AWS Stack.** I would likely opt away from the multiple vendors (Fly.io, Turso, Cloudflare) and 
   opt for the entire infrastructure living on the AWS stack (API Gateway, Lambdas, Dynamo, Route 53)
@@ -146,9 +146,9 @@ tested by ear on real calls.
 - **Mid-call language switching took three separate fixes to actually work.** Sending the
   ConversationRelay `language` message switched transcription but not the spoken voice; the
   stock TwiML declared no `<Language>` voice for the target locale, so TTS silently stayed
-  English. Declaring every locale (and re-declaring it in each TwiML customizer return —
+  English. Declaring every locale (and re-declaring it in each TwiML customizer return -
   the array replaces wholesale) fixed the voice; a per-turn prompt directive plus a
   same-turn tool-result steer kept the model's own words in-language; and the voice sounded
   wrong in Spanish/French until I pinned the ElevenLabs `turbo_v2_5` model (its default is
-  English-first). A passing smoke test only showed that the message was sent — it took a live
+  English-first). A passing smoke test only showed that the message was sent - it took a live
   call to confirm ConversationRelay actually acted on it, which is an easy gap to miss.

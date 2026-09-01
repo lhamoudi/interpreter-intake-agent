@@ -1,6 +1,6 @@
 /**
- * Smoke test for the Claude tool loop — needs ANTHROPIC_API_KEY, nothing else.
- * Runs the real agent loop against scripted turns — no phone, no Twilio.
+ * Smoke test for the Claude tool loop - needs ANTHROPIC_API_KEY, nothing else.
+ * Runs the real agent loop against scripted turns - no phone, no Twilio.
  *
  * Run with: npx tsx src/smoke/conversation.ts
  */
@@ -11,13 +11,13 @@ import { runAgent, initCall } from '../agent.js';
 import type { ConversationId } from 'twilio-agent-connect';
 
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('ANTHROPIC_API_KEY is not set — export it or add it to .env first.');
+  console.error('ANTHROPIC_API_KEY is not set - export it or add it to .env first.');
   process.exit(1);
 }
 
 const conversationId = randomUUID() as ConversationId;
 
-// A caller who volunteers info out of order, hesitates once, and confirms at the end —
+// A caller who volunteers info out of order, hesitates once, and confirms at the end -
 // exercises natural-language slot filling, not a rigid form.
 const turns = [
   "Hi, I need someone who speaks Spanish, I'm having trouble with my landlord.",

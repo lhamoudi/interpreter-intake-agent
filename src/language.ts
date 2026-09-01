@@ -2,14 +2,14 @@
  * Language handling: lets a caller who speaks Spanish or French be met in
  * their own language instead of being forced into English.
  *
- * IMPORTANT — three distinct languages are in play; do not conflate them:
+ * IMPORTANT - three distinct languages are in play; do not conflate them:
  *   - CALLER-spoken language: what the caller speaks to THIS agent (English,
  *     Spanish, or French). Set when the caller asks to switch (not cold-detected);
  *     drives the bot's STT/TTS/reply language via the machinery here. This is what
  *     this file is about.
  *   - sourceLanguage (in intake.ts): the THIRD PARTY's language the caller needs
  *     interpreted (their patient/client). Asked, never detected. Not here.
- *   - targetLanguage (in intake.ts): what the third party is interpreted INTO —
+ *   - targetLanguage (in intake.ts): what the third party is interpreted INTO -
  *     the caller's own language. Follows the caller-spoken language.
  *
  * ConversationRelay carries STT (transcription) and TTS languages. We set the
@@ -24,10 +24,10 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
 
 /**
  * Map a spoken language name to the codes and voice ConversationRelay needs.
- * Scoped to the three we have VERIFIED live — English, Spanish, French.
+ * Scoped to the three we have VERIFIED live - English, Spanish, French.
  *
  * All three use the SAME ElevenLabs multilingual voice, so the caller hears one
- * consistent male voice whichever language they use and across a mid-call switch —
+ * consistent male voice whichever language they use and across a mid-call switch -
  * rather than the jarring provider/timbre change we had when English was
  * ElevenLabs (CR default) but ES/FR were Google Neural2. ElevenLabs' multilingual
  * model speaks a single voice ID natively in each of these languages. A locale
@@ -36,7 +36,7 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
  * against CR's default provider).
  *
  * NOTE on picking the ID: the legacy "Adam" (pNInz6obpgDQGcFmaJgB) is a
- * narration voice — loud and theatrical, wrong for a calm intake line. Use a
+ * narration voice - loud and theatrical, wrong for a calm intake line. Use a
  * conversational-tuned voice ID (copied from the ElevenLabs voice's "Copy Voice
  * ID"). Same name can map to very different voices; audition the exact variant.
  *
@@ -53,9 +53,9 @@ interface LangCodes {
 // One ElevenLabs voice for every language, so the voice is identical across
 // languages and across a switch. Change VOICE_ID to re-voice the whole agent.
 //
-// CRITICAL — the MODEL matters as much as the voice. ConversationRelay selects
+// CRITICAL - the MODEL matters as much as the voice. ConversationRelay selects
 // the ElevenLabs model by appending `-<model>` to the voice ID, and its DEFAULT
-// is `flash_v2_5`, which is English-optimized — that is why voices sounded awful
+// is `flash_v2_5`, which is English-optimized - that is why voices sounded awful
 // in Spanish/French (they were being rendered by an English model, not the
 // voice's fault). `turbo_v2_5` is the multilingual model (32 languages incl. ES
 // and FR), so we pin it. To re-voice, change VOICE_ID only; keep the model
@@ -106,7 +106,7 @@ export function returningGreeting(name: string | undefined): string | undefined 
  * hears the agent confirm the pivot before it continues in that language.
  */
 const SWITCH_ACKS: Record<string, string> = {
-  'en-US': "Of course — let's continue in English.",
+  'en-US': "Of course - let's continue in English.",
   'es-US': 'Claro, sigamos en español.',
   'fr-FR': 'Bien sûr, continuons en français.',
 };
@@ -135,14 +135,14 @@ export function isEnglish(name: string | undefined): boolean {
 /**
  * The supported locales as ConversationRelay `<Language>` child declarations for
  * the initial TwiML (`defaultTwimlOptions.languages`, and every onInboundCallTwiml
- * return — the array replaces wholesale, so it must be present in each). All three
+ * return - the array replaces wholesale, so it must be present in each). All three
  * carry the same ElevenLabs `ttsProvider` + `voice`, so every language (and every
  * switch, including back to English) uses one consistent male voice. The
  * conditional spreads stay in case a locale is ever declared without a pinned
  * voice (CR's schema is strict about undefined values).
  */
 export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
-  // Dedup by tts code — LANGUAGES has multiple name aliases per locale.
+  // Dedup by tts code - LANGUAGES has multiple name aliases per locale.
   new Map(
     Object.values(LANGUAGES).map((c) => [
       c.tts,

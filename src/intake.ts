@@ -11,10 +11,10 @@ export type Industry = 'medical' | 'legal' | 'community';
 
 /**
  * How the caller chose to be served, offered once the required intake is complete:
- *  - 'ai'    — AI interprets the call itself now (cheapest; roadmap, offered but
- *              actual live AI interpretation is not built — falls back to human).
- *  - 'human' — a human interpreter, connected live on this call (premium).
- *  - 'video' — deflect to a Twilio Video Room (WebRTC) via an emailed join link
+ *  - 'ai'    - AI interprets the call itself now (cheapest; roadmap, offered but
+ *              actual live AI interpretation is not built - falls back to human).
+ *  - 'human' - a human interpreter, connected live on this call (premium).
+ *  - 'video' - deflect to a Twilio Video Room (WebRTC) via an emailed join link
  *              (good for screensharing / documents; removes PSTN per-minute cost).
  */
 export type ServiceTier = 'ai' | 'human' | 'video';
@@ -22,29 +22,29 @@ export type ServiceTier = 'ai' | 'human' | 'video';
 /** A single interpreter request, built up slot-by-slot over the call. */
 export interface IntakeRecord {
   /**
-   * The THIRD PARTY's language — the person the caller needs interpreted (their
+   * The THIRD PARTY's language - the person the caller needs interpreted (their
    * patient, client, etc.). Asked, not detected. NOT the language the caller
    * speaks to the agent (that is the caller-spoken language, tracked separately
    * on CallState.activeLanguage / callers.caller_language).
    */
   sourceLanguage?: string;
   /**
-   * The language the third party is interpreted INTO — the caller's own language.
+   * The language the third party is interpreted INTO - the caller's own language.
    * Defaults to the caller-spoken language (set_caller_language) and is confirmed,
    * not asked cold. Was previously always English.
    */
   targetLanguage?: string;
   genderPreference?: GenderPreference;
-  /** Optional — many calls have no industry preference. */
+  /** Optional - many calls have no industry preference. */
   industry?: Industry;
-  /** Free text: "what matters most" — context for the interpreter. */
+  /** Free text: "what matters most" - context for the interpreter. */
   notes?: string;
   /** Which service tier the caller chose (set at deflection, after core intake). */
   serviceTier?: ServiceTier;
   /**
    * Email for the video-session join link. Collected ONLY on the video tier
    * (SMS is blocked by A2P 10DLC on this account). In the production vision this
-   * comes from the member's registered profile — see WRITEUP.
+   * comes from the member's registered profile - see WRITEUP.
    */
   email?: string;
 }
@@ -68,7 +68,7 @@ function isBlank(v: unknown): boolean {
   return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 }
 
-/** Deterministic completeness check — the only thing allowed to trigger a handoff. */
+/** Deterministic completeness check - the only thing allowed to trigger a handoff. */
 export function checkComplete(record: IntakeRecord): Completeness {
   const missing = REQUIRED_SLOTS.filter((slot) => isBlank(record[slot]));
   return { complete: missing.length === 0, missing: [...missing] };

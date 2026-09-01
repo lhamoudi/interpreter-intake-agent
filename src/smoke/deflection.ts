@@ -40,7 +40,7 @@ const turns = live
 
 async function main() {
   console.log(
-    `(mode: ${live ? `LIVE video — will really create a room + email ${testEmail}` : 'human tier — no external side effects'})`,
+    `(mode: ${live ? `LIVE video - will really create a room + email ${testEmail}` : 'human tier - no external side effects'})`,
   );
   await initCall(conversationId as unknown as string, '+13125551212');
 
@@ -57,8 +57,8 @@ async function main() {
     replies.some((r) => /video/i.test(r)) && replies.some((r) => /human|interpreter/i.test(r));
   console.log(
     offered
-      ? '\nPASS — service options presented and a choice was handled. Review transcript above.'
-      : '\nFAIL — did not see the service options offered.',
+      ? '\nPASS - service options presented and a choice was handled. Review transcript above.'
+      : '\nFAIL - did not see the service options offered.',
   );
   if (!offered) process.exit(1);
 }

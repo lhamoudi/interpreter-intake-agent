@@ -65,13 +65,13 @@ function baseSystemPrompt(): string {
     'returning caller, whatever language was preset). If the caller ASKS to continue in Spanish or',
     'French, or clearly tells you which language they want to use, call set_caller_language with it',
     'and speak that language for the rest of the call. Do NOT try to guess their language from a',
-    'garbled first utterance — wait until they make it clear (by asking, or by switching once you',
+    'garbled first utterance - wait until they make it clear (by asking, or by switching once you',
     'are already conversing). When you do switch, that language is the caller\'s own language, which',
-    'is also what their third party should be interpreted INTO (targetLanguage) — default',
+    'is also what their third party should be interpreted INTO (targetLanguage) - default',
     'targetLanguage to it and simply confirm, do not ask it cold.',
     '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
-    '  - which language the caller needs an interpreter FOR — this is the language of the OTHER',
+    '  - which language the caller needs an interpreter FOR - this is the language of the OTHER',
     '    person (their patient, client, or whoever they are trying to talk to), NOT the language',
     '    the caller is speaking to you. Ask for it and record it as sourceLanguage. For example a',
     '    caller speaking to you in English who needs to talk to a Spanish-speaking patient has',
@@ -80,31 +80,31 @@ function baseSystemPrompt(): string {
     '  - the subject area, so we can match a specialised interpreter: medical, legal, or general',
     '    community. Ask what the call is about (for example a doctor visit, a court or legal',
     '    matter, or something else) and map their answer to medical, legal, or community. This is',
-    '    helpful but NOT required — if they are unsure or would rather not say, do not press; move on.',
-    '  - anything else that matters most to them (open text — capture as notes)',
+    '    helpful but NOT required - if they are unsure or would rather not say, do not press; move on.',
+    '  - anything else that matters most to them (open text - capture as notes)',
     '',
     'Once you have all the required details and have confirmed them, offer three ways to be served,',
     'briefly and naturally (one sentence):',
     '  1. An AI interpreter can help right now on this call at low cost.',
-    '  2. A professional human interpreter, connected on this call now — higher cost, best for',
+    '  2. A professional human interpreter, connected on this call now - higher cost, best for',
     '     sensitive or complex situations.',
-    '  3. A link emailed to join a video session — voice or video, share screen or documents.',
+    '  3. A link emailed to join a video session - voice or video, share screen or documents.',
     'When they pick one, call choose_service_tier. For "video" you must have their email (ask if',
     'needed). Email addresses are easy to mishear on a phone line, so a freshly-given email is NOT',
     'ready to use yet: after they say it, read it back spelling out any ambiguous part letter by',
     'letter (say "M as in Mike", "S as in Sam", and call out dot, dash, or underscore explicitly)',
     'rather than just repeating it as a word, and wait for an explicit yes. Only call',
-    'choose_service_tier with the email AFTER they have confirmed it — never on the same turn you',
+    'choose_service_tier with the email AFTER they have confirmed it - never on the same turn you',
     'first hear it.',
-    'For "human" (or an AI/video fallback), then call request_handoff — this connects them',
+    'For "human" (or an AI/video fallback), then call request_handoff - this connects them',
     'live, so tell them to stay on the line while the call transfers. Do NOT say "call you back".',
     '',
     'Rules:',
     '  - Ask ONE question, then STOP and wait for the caller to answer. Never answer your own',
     '    question, never write the caller\'s side of the dialogue, and never chain multiple',
-    '    questions into one turn ("Are you a healthcare provider? Excellent, ..." is wrong —',
+    '    questions into one turn ("Are you a healthcare provider? Excellent, ..." is wrong -',
     '    ask, then end your turn).',
-    '  - Call record_intake as soon as you learn each detail — do not wait until the end.',
+    '  - Call record_intake as soon as you learn each detail - do not wait until the end.',
     '  - Handle "I don\'t know yet", interruptions, and corrections gracefully.',
     '  - Confirm the collected details back before you offer options.',
     '  - Do not proceed until every required detail is collected.',
@@ -112,20 +112,20 @@ function baseSystemPrompt(): string {
     '    request_handoff. If request_handoff reports missing fields, ask for them.',
     '  - You are speaking aloud. No markdown, asterisks, bullets, or emojis. Keep replies to a',
     '    sentence or two, plain and calm.',
-    '  - Always finish your turn with something spoken to the caller — even a brief acknowledgement —',
+    '  - Always finish your turn with something spoken to the caller - even a brief acknowledgement -',
     '    whether or not you also call a tool along the way. The caller cannot see tool calls, only',
     '    hear you, so a turn that ends in silence sounds like the line went dead.',
     '',
     'Edge cases:',
     '  - CONTRADICTION: if the caller changes a detail they gave earlier (e.g. first "Spanish",',
     '    later "actually Portuguese"), do not silently overwrite. Briefly note the change and',
-    '    confirm the new value ("Got it — Portuguese, not Spanish?"), then record_intake with it.',
+    '    confirm the new value ("Got it - Portuguese, not Spanish?"), then record_intake with it.',
     '  - CAN\'T ANSWER: you only arrange interpreters. If asked something outside that (legal advice,',
     '    medical advice, pricing you don\'t know, unrelated questions), say plainly you can\'t help',
     '    with that but you can connect them with an interpreter, and steer back. Never guess or',
     '    invent facts.',
-    '  - NOT A QUALIFIED LEAD: if the caller clearly does not want an interpreter — wrong number, a',
-    '    sales/spam call, just testing, or being abusive — do not push through intake. Politely say',
+    '  - NOT A QUALIFIED LEAD: if the caller clearly does not want an interpreter - wrong number, a',
+    '    sales/spam call, just testing, or being abusive - do not push through intake. Politely say',
     '    this line is only for interpreter requests and call decline_request to end. Give the caller',
     '    the benefit of the doubt first; only decline when it is clear.',
   ].join('\n');
@@ -140,7 +140,7 @@ function memoryPreamble(memory: CallerMemory | null): string {
       `they prefer a ${memory.genderPreference} interpreter`,
     memory.industry && `often ${memory.industry}`,
     memory.email &&
-      `their email on file is ${memory.email} — it was already confirmed on a prior call, so if ` +
+      `their email on file is ${memory.email} - it was already confirmed on a prior call, so if ` +
         'they choose the video tier just say you have it on file and briefly name it in plain ' +
         'speech (no need to spell it out letter by letter); only ask again if they say it has changed',
   ].filter(Boolean);
@@ -148,7 +148,7 @@ function memoryPreamble(memory: CallerMemory | null): string {
   return (
     '\n\nThis is a returning caller. From previous calls: ' +
     known.join('; ') +
-    '. They have ALREADY heard a "welcome back" greeting before you — do not greet them ' +
+    '. They have ALREADY heard a "welcome back" greeting before you - do not greet them ' +
     'again or say "welcome back" a second time; just continue naturally. Confirm rather than ' +
     're-ask what you already know, and only fill the gaps.'
   );
@@ -156,14 +156,14 @@ function memoryPreamble(memory: CallerMemory | null): string {
 
 /**
  * Per-turn directive keeping the model's SPOKEN replies in the caller's language.
- * Empty for English (the base) — no directive needed. Injected into the system
+ * Empty for English (the base) - no directive needed. Injected into the system
  * prompt every turn, so it tracks `state.activeLanguage` as it changes.
  */
 function languagePreamble(activeLanguage: string | null): string {
   if (!activeLanguage || activeLanguage === 'English') return '';
   return (
     `\n\nThis caller is being served in ${activeLanguage}. Write EVERY reply to them entirely ` +
-    `in ${activeLanguage} — every word you speak aloud. Only the words you SAY change; the values ` +
+    `in ${activeLanguage} - every word you speak aloud. Only the words you SAY change; the values ` +
     'you put in tool fields stay as normal English data (e.g. record the third party\'s language ' +
     'as "Spanish", industry as "medical"). If the caller switches to another language, call ' +
     'set_caller_language again and follow it.'
@@ -197,7 +197,7 @@ export async function initCall(conversationId: string, callerAddress: string | u
 
   // A returning caller whose spoken language we know starts the call already in
   // that language (the TwiML customizer also preset the STT/TTS voice). A new
-  // caller starts undetermined — the first utterance sets it.
+  // caller starts undetermined - the first utterance sets it.
   const seededLanguage = memory ? canonicalLanguage(memory.callerLanguage) ?? null : null;
 
   calls.set(conversationId, {
@@ -238,7 +238,7 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   state.history.push({ role: 'user', content: userMessage });
 
   // Tool loop: Claude may speak AND call a tool in the same hop (a text block
-  // alongside tool_use blocks) — that spoken text must not be dropped just
+  // alongside tool_use blocks) - that spoken text must not be dropped just
   // because the turn isn't done yet. Accumulate text across every hop and
   // return it all once the turn ends, rather than only reading the final hop.
   const spoken: string[] = [];
@@ -260,7 +260,7 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
       // The model is unreachable (out of credits, outage, timeout). Never leave
       // the caller in dead air: apologise in their language and route the live
       // call into the human queue via the same Studio→Flex handoff path.
-      log.error({ conversationId: convId, err }, 'model call failed — routing caller to queue');
+      log.error({ conversationId: convId, err }, 'model call failed - routing caller to queue');
       return failToQueue(state, deps);
     }
 
@@ -286,14 +286,14 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
       // Hop cap reached with tool_results as the last history entry. Push the
       // fallback line into history as an assistant message too, so the next
       // turn's user message doesn't create two consecutive user-role messages.
-      const fallback = 'Let me get a colleague to help you finish this — one moment.';
+      const fallback = 'Let me get a colleague to help you finish this - one moment.';
       spoken.push(fallback);
       state.history.push({ role: 'assistant', content: fallback });
     }
   }
 
   // Fallback: if every hop somehow produced only tool calls and no words,
-  // don't hand the channel an empty string — on a live call that reads as
+  // don't hand the channel an empty string - on a live call that reads as
   // dead air.
   return spoken.join(' ') || 'Got it, thank you.';
 }
@@ -301,7 +301,7 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
 /** Apology spoken when the model is unreachable, in the caller's active language. */
 const QUEUE_FALLBACK: Record<string, string> = {
   English:
-    "I'm sorry — I'm having a technical problem on my end. Let me connect you with a person who " +
+    "I'm sorry - I'm having a technical problem on my end. Let me connect you with a person who " +
     'can help. Please stay on the line.',
   Spanish:
     'Lo siento, tengo un problema técnico. Le voy a comunicar con una persona que puede ayudarle. ' +
@@ -315,7 +315,7 @@ const QUEUE_FALLBACK: Record<string, string> = {
  * Graceful degradation when the model call fails (out of credits, outage,
  * timeout). Routes the LIVE call into the human queue via the same Studio→Flex
  * handoff mechanism the human tier uses, and returns a spoken apology in the
- * caller's language — never dead air. Best-effort: even if persistence or the
+ * caller's language - never dead air. Best-effort: even if persistence or the
  * session payload fails, we still return words to speak.
  */
 function failToQueue(state: CallState, deps: Deps): string {
@@ -327,7 +327,7 @@ function failToQueue(state: CallState, deps: Deps): string {
         type: 'end',
         handoffData: buildHandoffData(conversationId, state.intake),
       };
-      log.info({ conversationId }, 'fallback handoff payload set — routing to Flex queue');
+      log.info({ conversationId }, 'fallback handoff payload set - routing to Flex queue');
     }
   } catch (err) {
     log.error({ conversationId, err }, 'failed to set fallback handoff payload');
@@ -365,7 +365,7 @@ async function dispatchTool(
 
       // The interpreter's target language IS the caller's own language: the third
       // party is interpreted INTO whatever the caller speaks. So it must track the
-      // caller language, including when they switch mid-call — not just get
+      // caller language, including when they switch mid-call - not just get
       // defaulted once. (Set it whenever the caller language is (re)confirmed.)
       state.intake.targetLanguage = canonical;
 
@@ -455,7 +455,7 @@ async function dispatchTool(
             message: 'Video session created and join link emailed to the caller.',
           });
         }
-        // Video setup failed — fall back to a live human transfer rather than dead-end.
+        // Video setup failed - fall back to a live human transfer rather than dead-end.
         state.intake.serviceTier = 'human';
         log.warn(
           { conversationId, tool: 'choose_service_tier', tier, videoOk: false, reason: result.reason },
@@ -546,7 +546,7 @@ async function dispatchTool(
       return JSON.stringify({
         ok: true,
         declined: true,
-        message: 'Say a brief polite goodbye — the call will end automatically after you speak.',
+        message: 'Say a brief polite goodbye - the call will end automatically after you speak.',
       });
     }
 
@@ -601,7 +601,7 @@ async function finalizeComplete(
 
 /**
  * Called when the call ends. If the caller hung up before we completed, persist
- * whatever partial record we have, marked abandoned — so no lead is silently lost.
+ * whatever partial record we have, marked abandoned - so no lead is silently lost.
  */
 export async function endCall(conversationId: string): Promise<void> {
   const state = calls.get(conversationId);

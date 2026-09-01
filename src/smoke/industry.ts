@@ -1,7 +1,7 @@
 /**
  * Smoke test for subject-area (industry) capture. Needs ANTHROPIC_API_KEY.
  * The caller describes the situation in plain words ("a hospital visit") rather
- * than naming a category — this checks the agent captures `industry` and maps
+ * than naming a category - this checks the agent captures `industry` and maps
  * the free-text answer to the enum (hospital -> medical) without being told the
  * word "medical". Run: npx tsx src/smoke/industry.ts
  */
@@ -43,8 +43,8 @@ async function main() {
   const usedMedical = replies.some((r) => /medical/i.test(r));
   console.log(
     usedMedical
-      ? '\nPASS — subject area captured and used (hospital -> medical). See the record_intake log line for fields:["...","industry"].'
-      : '\nCHECK — "medical" not surfaced in replies; confirm industry capture from the record_intake log line above.',
+      ? '\nPASS - subject area captured and used (hospital -> medical). See the record_intake log line for fields:["...","industry"].'
+      : '\nCHECK - "medical" not surfaced in replies; confirm industry capture from the record_intake log line above.',
   );
 }
 

@@ -24,7 +24,7 @@ import { type IntakeRecord } from './intake.js';
  * nested `interpreterRequest` object is on the task and readable by any plugin or
  * the API, but is NOT shown by the native UI without a Flex plugin. The customer
  * already runs an interpreter Flex plugin, so productionising this is mapping
- * these attributes onto that plugin's existing fields — not building UI here.
+ * these attributes onto that plugin's existing fields - not building UI here.
  */
 export function buildTaskAttributes(
   conversationId: string,
@@ -71,7 +71,7 @@ export function buildTaskAttributes(
  *    those so the agent sees useful context even with the stock UI.
  *  - `interpreterRequest` groups the full captured intake as labelled fields.
  *    The stock UI shows it as JSON; a small Flex plugin (TaskCanvasTabs /
- *    TaskInfoPanel) can render it as a clean card — see WRITEUP. Grouping it
+ *    TaskInfoPanel) can render it as a clean card - see WRITEUP. Grouping it
  *    under one key keeps that plugin trivial and the raw view readable.
  */
 export function buildHandoffData(conversationId: string, record: IntakeRecord): string {
@@ -79,7 +79,7 @@ export function buildHandoffData(conversationId: string, record: IntakeRecord): 
 }
 
 /**
- * Payload for ending a call that is NOT being transferred to a human — a declined
+ * Payload for ending a call that is NOT being transferred to a human - a declined
  * (spam / wrong-number / not-a-lead) caller. Sent via the same ConversationRelay
  * `end` mechanism as a handoff, so control returns to the `<Connect action>`
  * Studio Flow, but marked so the Flow branches to a hang-up instead of
@@ -98,7 +98,7 @@ export function buildTerminateData(
   // Carry the SAME attribute shape as a real handoff (via buildTaskAttributes)
   // so any Studio parse/Set-Variables step that reads handoff fields
   // (interpreterRequest, languagePair, conversations.*) finds them and does not
-  // throw on a decline — then layer the decline markers on top. The Flow still
+  // throw on a decline - then layer the decline markers on top. The Flow still
   // branches on `disposition` to hang up instead of Send-to-Flex.
   return JSON.stringify({
     attributes: {

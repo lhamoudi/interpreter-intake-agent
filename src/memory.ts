@@ -2,7 +2,7 @@
  * Persistence + returning-caller memory (Turso / libSQL).
  *
  * Two responsibilities:
- *  1. Durable record of every intake (complete or abandoned) — retrievable by a
+ *  1. Durable record of every intake (complete or abandoned) - retrievable by a
  *     coordinator via GET /requests.
  *  2. Memory across calls: keyed by a SALTED HASH of the caller's number, never
  *     the raw PSTN identity. A returning caller's known preferences are injected
@@ -24,7 +24,7 @@ function db(): Client {
   return client;
 }
 
-/** Salted hash of an E.164 number — the only caller identifier we store. */
+/** Salted hash of an E.164 number - the only caller identifier we store. */
 export function hashCaller(address: string | undefined): string | null {
   if (!address) return null;
   const salt = process.env.CALLER_HASH_SALT ?? 'dev-salt';
@@ -83,8 +83,8 @@ export async function getCallerMemory(callerHash: string | null): Promise<Caller
 
 /**
  * Upsert the caller's latest known preferences and bump their call count.
- * `callerLanguage` is the language the caller spoke to the AGENT (EN/ES/FR) — a
- * separate fact from the source/target on the intake record — used to preset the
+ * `callerLanguage` is the language the caller spoke to the AGENT (EN/ES/FR) - a
+ * separate fact from the source/target on the intake record - used to preset the
  * voice on their next call.
  */
 export async function rememberCaller(

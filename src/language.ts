@@ -24,18 +24,19 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
 
 /**
  * Map a spoken language name to the codes and voice ConversationRelay needs.
- * Scoped to the three we have VERIFIED live — English, Spanish, French — each
- * with an explicit Google TTS voice, because mid-call TTS switching only works
- * for a locale declared as a `<Language>` child WITH a real voice (a bare
- * `<Language code>` child broke the call entirely against CR's default provider).
- * Adding a language means declaring it here with a validated Google voice and
- * testing it on a real call — don't add unverified ones.
+ * Scoped to the three we have VERIFIED live — English, Spanish, French.
  *
- * `transcription` = STT locale, `tts` = TTS locale. `ttsProvider`/`voice` pin an
- * exact synthesis voice — set ONLY for the non-English locales. English is left
- * unpinned so ConversationRelay uses its default TTS (ElevenLabs), which is the
- * higher-quality voice callers hear on an English-only call; pinning an explicit
- * Google voice for English audibly degraded it.
+ * All three use the SAME ElevenLabs multilingual voice (Adam), so the caller
+ * hears one consistent male voice whichever language they use and across a
+ * mid-call switch — rather than the jarring provider/timbre change we had when
+ * English was ElevenLabs (CR default) but ES/FR were Google Neural2. ElevenLabs'
+ * multilingual v2 model speaks a single voice ID natively in each of these
+ * languages. A locale still MUST be declared as a `<Language>` child WITH this
+ * voice for mid-call TTS switching to it to work (a bare `<Language code>` broke
+ * the call entirely against CR's default provider).
+ *
+ * `transcription` = STT locale, `tts` = TTS locale, `ttsProvider`/`voice` pin the
+ * exact synthesis voice.
  */
 interface LangCodes {
   transcription: string;
@@ -44,10 +45,16 @@ interface LangCodes {
   voice?: string;
 }
 
-// English: no explicit voice/provider — inherit CR's default (ElevenLabs).
-const EN: LangCodes = { transcription: 'en-US', tts: 'en-US' };
-const ES: LangCodes = { transcription: 'es-US', tts: 'es-US', ttsProvider: 'Google', voice: 'es-US-Neural2-A' };
-const FR: LangCodes = { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: 'Google', voice: 'fr-FR-Neural2-F' };
+// One ElevenLabs multilingual male voice (Adam) for every language, so the voice
+// is identical across languages and across a switch. Change this single ID to
+// re-voice the whole agent. Exported so the base greeting (defaultTwimlOptions)
+// uses the same voice as the conversation that follows.
+export const ELEVENLABS_VOICE = 'pNInz6obpgDQGcFmaJgB'; // ElevenLabs "Adam" (multilingual v2)
+export const TTS_PROVIDER = 'ElevenLabs';
+
+const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };
+const ES: LangCodes = { transcription: 'es-US', tts: 'es-US', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };
+const FR: LangCodes = { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };
 
 /**
  * Language name → codes. Keyed by the English name AND the endonym/other-language
@@ -115,12 +122,11 @@ export function isEnglish(name: string | undefined): boolean {
 /**
  * The supported locales as ConversationRelay `<Language>` child declarations for
  * the initial TwiML (`defaultTwimlOptions.languages`, and every onInboundCallTwiml
- * return — the array replaces wholesale, so it must be present in each). The
- * non-English locales carry an explicit Google `ttsProvider` + `voice`. English is
- * declared too (so switching BACK to it mid-call finds a voice), but WITHOUT an
- * explicit voice, so CR uses its default (ElevenLabs) — pinning a Google voice for
- * English audibly degraded the base call. `voice`/`ttsProvider` keys are omitted
- * entirely when unset (CR's schema is strict about undefined values).
+ * return — the array replaces wholesale, so it must be present in each). All three
+ * carry the same ElevenLabs `ttsProvider` + `voice`, so every language (and every
+ * switch, including back to English) uses one consistent male voice. The
+ * conditional spreads stay in case a locale is ever declared without a pinned
+ * voice (CR's schema is strict about undefined values).
  */
 export const SUPPORTED_LANGUAGE_DECLARATIONS = Array.from(
   // Dedup by tts code — LANGUAGES has multiple name aliases per locale.

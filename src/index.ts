@@ -12,7 +12,13 @@ import path from 'node:path';
 import { TAC, TACConfig, VoiceChannel, TACServer, createLogger } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
 import { listRequests, lookupCallerByAddress } from './memory.js';
-import { returningGreeting, twimlPresetFor, SUPPORTED_LANGUAGE_DECLARATIONS } from './language.js';
+import {
+  returningGreeting,
+  twimlPresetFor,
+  SUPPORTED_LANGUAGE_DECLARATIONS,
+  ELEVENLABS_VOICE,
+  TTS_PROVIDER,
+} from './language.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DECK_PATH = path.join(__dirname, '..', 'public', 'deck.html');
@@ -48,9 +54,13 @@ async function main() {
   const voiceChannel = new VoiceChannel(tac, {
     defaultTwimlOptions: {
       welcomeGreeting: NEW_CALLER_GREETING,
+      // Speak the greeting in the same ElevenLabs voice the conversation uses, so
+      // there's no voice change between "hello" and the first agent reply.
+      voice: ELEVENLABS_VOICE,
+      ttsProvider: TTS_PROVIDER,
       // Declare every supported locale as a <Language> child WITH a voice, so a
       // mid-call switch to any of them has a voice to use (a bare declaration or
-      // an undeclared locale silently keeps TTS on English).
+      // an undeclared locale silently keeps TTS on the default).
       languages: SUPPORTED_LANGUAGE_DECLARATIONS,
     },
   });

@@ -60,7 +60,7 @@ describe('switchAck', () => {
 
 describe('twimlPresetFor', () => {
   it('returns a voice preset for non-English callers', () => {
-    expect(twimlPresetFor('Spanish')).toMatchObject({ ttsLanguage: 'es-US', voice: 'es-US-Neural2-A' });
+    expect(twimlPresetFor('Spanish')).toMatchObject({ ttsLanguage: 'es-US', ttsProvider: 'ElevenLabs' });
   });
   it('returns undefined for English (base voice) and unknowns', () => {
     expect(twimlPresetFor('English')).toBeUndefined();
@@ -75,18 +75,11 @@ describe('SUPPORTED_LANGUAGE_DECLARATIONS', () => {
     expect(codes).toEqual(['en-US', 'es-US', 'fr-FR']);
   });
 
-  it('pins a Google voice for the non-English locales', () => {
-    for (const d of SUPPORTED_LANGUAGE_DECLARATIONS) {
-      if (d.code === 'en-US') continue;
-      expect(d.voice).toBeTruthy();
-      expect(d.ttsProvider).toBe('Google');
-    }
-  });
-
-  it('leaves English unpinned so CR uses its default (ElevenLabs) voice', () => {
-    const en = SUPPORTED_LANGUAGE_DECLARATIONS.find((d) => d.code === 'en-US');
-    expect(en).toBeDefined();
-    expect('voice' in en!).toBe(false);
-    expect('ttsProvider' in en!).toBe(false);
+  it('uses one ElevenLabs voice across all three locales', () => {
+    const voices = new Set(SUPPORTED_LANGUAGE_DECLARATIONS.map((d) => d.voice));
+    const providers = new Set(SUPPORTED_LANGUAGE_DECLARATIONS.map((d) => d.ttsProvider));
+    expect(voices.size).toBe(1); // same voice ID for EN/ES/FR
+    expect([...voices][0]).toBeTruthy();
+    expect([...providers]).toEqual(['ElevenLabs']);
   });
 });

@@ -12,3 +12,4 @@ dist/
 private/*
 !private/.gitkeep
 docs/DEMO-AGENDA.md
+docs/DEMO-CHEATSHEET.md

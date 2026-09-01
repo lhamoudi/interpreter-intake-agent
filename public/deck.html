@@ -445,9 +445,24 @@
   </div>
 </section>
 
-<!-- 02 · Thesis -->
+<!-- 02 · Demo agenda -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">02</span> The use case</div>
+  <div class="eyebrow"><span class="n">02</span> Demo agenda</div>
+  <h2>What I'll show, in order</h2>
+  <p class="lead">Six beats, live on the number above — then open Q&amp;A on anything in the repo.</p>
+  <ol class="steps">
+    <li><span><strong>Multi-intent intake</strong> — one call, every slot captured in a single breath, no menu.</span></li>
+    <li><span><strong>The completeness gate</strong> — the model proposes slots; server code, not the model, decides intake is done.</span></li>
+    <li><span><strong>Tiered options + live Flex handoff</strong> — pick a tier, watch the task land in Flex with the caller still on the line.</span></li>
+    <li><span><strong>Multilingual, mid-call</strong> — switch language on request, same voice, no reset.</span></li>
+    <li><span><strong>Graceful decline</strong> — a non-lead gets a clean hangup, still logged.</span></li>
+    <li><span><strong>Second call, remembered</strong> — cross-call memory greets a returning caller by preference.</span></li>
+  </ol>
+</section>
+
+<!-- 03 · Thesis -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">03</span> The use case</div>
   <h2>Conversational intake in front of the routing</h2>
   <p>I was previously embedded with a large interpretation provider's dev team, building
   their IVR intake and the overflow routing behind it. The intake in front of that routing
@@ -460,9 +475,9 @@
   The handoff is the deliverable, so the intake has to capture everything before it.</p>
 </section>
 
-<!-- 03 · Architecture -->
+<!-- 04 · Architecture -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">03</span> Architecture</div>
+  <div class="eyebrow"><span class="n">04</span> Architecture</div>
   <h2>One held socket, one small surface</h2>
   <div class="flow">
     <div class="fnode"><b>Caller (PSTN)</b><span>+1 833 918 3352</span></div>
@@ -481,9 +496,9 @@
   what makes "welcome back" work. Fronted by a Cloudflare-managed domain, DNS-only.</p>
 </section>
 
-<!-- 04 · Completeness gate -->
+<!-- 05 · Completeness gate -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">04</span> LLM integration</div>
+  <div class="eyebrow"><span class="n">05</span> LLM integration</div>
   <h2>The model proposes. The server decides.</h2>
   <p>Claude fills intake slots through typed tools — but it never decides the intake is
   done. A <strong>deterministic server-side gate</strong>
@@ -507,9 +522,9 @@
   </div>
 </section>
 
-<!-- 05 · Deflection -->
+<!-- 06 · Deflection -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">05</span> Product sense</div>
+  <div class="eyebrow"><span class="n">06</span> Product sense</div>
   <h2>Three tiers, priced like the real business</h2>
   <p>Once the intake is complete, the agent offers the caller a choice — modelled on the
   actual unit economics of an interpretation network.</p>
@@ -534,9 +549,9 @@
   never dead-ends.</p>
 </section>
 
-<!-- 06 · Flex handoff -->
+<!-- 07 · Flex handoff -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">06</span> Human handoff</div>
+  <div class="eyebrow"><span class="n">07</span> Human handoff</div>
   <h2>Live transfer into Flex — with the context attached</h2>
   <ol class="steps">
     <li><span>Server sets <code>session.pendingHandoffData</code> with the full lead as task attributes.</span></li>
@@ -550,9 +565,9 @@
   Easy to miss; worth knowing.</p>
 </section>
 
-<!-- 07 · Hard bits -->
+<!-- 08 · Hard bits -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">07</span> Honest scoping</div>
+  <div class="eyebrow"><span class="n">08</span> Honest scoping</div>
   <h2>What fought back</h2>
   <div class="cols cols-3">
     <div class="card">
@@ -576,9 +591,9 @@
   </div>
 </section>
 
-<!-- 08 · Demo + next -->
+<!-- 09 · Demo + next -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">08</span> Demo</div>
+  <div class="eyebrow"><span class="n">09</span> Demo</div>
   <h2>Try it, then ask me anything</h2>
   <div class="call-card">
     <div>

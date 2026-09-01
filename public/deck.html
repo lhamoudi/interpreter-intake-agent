@@ -452,7 +452,7 @@
   <p class="lead">Six beats, live on the number above — then open Q&amp;A on anything in the repo.</p>
   <ol class="steps">
     <li><span><strong>Multi-intent intake</strong> — one call, every slot captured in a single breath, no menu.</span></li>
-    <li><span><strong>The completeness gate</strong> — the model proposes slots; server code, not the model, decides intake is done.</span></li>
+    <li><span><strong>Completeness check</strong> — Claude fills in the details, but my server code decides when the intake is actually done.</span></li>
     <li><span><strong>Tiered options + live Flex handoff</strong> — pick a tier, watch the task land in Flex with the caller still on the line.</span></li>
     <li><span><strong>Multilingual, mid-call</strong> — switch language on request, same voice, no reset.</span></li>
     <li><span><strong>Graceful decline</strong> — a non-lead gets a clean hangup, still logged.</span></li>
@@ -470,15 +470,16 @@
   <p>A conversational agent takes every intent at once, in any order:</p>
   <div class="quote">"I need a Spanish-to-English interpreter, male, for a doctor visit —
   and I need them immediately."</div>
-  <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters to the
-  clinicians, lawyers, and community workers standing next to someone they can't talk to.
-  The handoff is the deliverable, so the intake has to capture everything before it.</p>
+  <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters for
+  time-sensitive intake — a doctor's visit, a legal appointment, an intake line.
+  The handoff to a human is the actual goal, so the intake needs to gather everything
+  before that happens.</p>
 </section>
 
 <!-- 04 · Architecture -->
 <section class="slide">
   <div class="eyebrow"><span class="n">04</span> Architecture</div>
-  <h2>One held socket, one small surface</h2>
+  <h2>How a call moves through the system</h2>
   <div class="flow">
     <div class="fnode"><b>Caller (PSTN)</b><span>+1 833 918 3352</span></div>
     <div class="farrow">▼ POST /twiml → &lt;Connect&gt;&lt;ConversationRelay&gt;</div>
@@ -496,14 +497,13 @@
   what makes "welcome back" work. Fronted by a Cloudflare-managed domain, DNS-only.</p>
 </section>
 
-<!-- 05 · Completeness gate -->
+<!-- 05 · Completeness check -->
 <section class="slide">
   <div class="eyebrow"><span class="n">05</span> LLM integration</div>
-  <h2>The model proposes. The server decides.</h2>
-  <p>Claude fills intake slots through typed tools — but it never decides the intake is
-  done. A <strong>deterministic server-side gate</strong>
-  (<code>checkComplete</code> vs <code>REQUIRED_SLOTS</code>) is the only thing that
-  permits handoff. Completeness is code, not model judgement.</p>
+  <h2>Server code decides when the intake is complete, not the model</h2>
+  <p>Claude fills intake slots through typed tools, but it doesn't decide on its own that
+  the intake is done. A server-side check — <code>checkComplete</code> against
+  <code>REQUIRED_SLOTS</code> — is the only thing that's allowed to trigger a handoff.</p>
   <div class="cols cols-2">
     <div class="card">
       <h3><span class="tag">tools</span></h3>
@@ -525,7 +525,7 @@
 <!-- 06 · Deflection -->
 <section class="slide">
   <div class="eyebrow"><span class="n">06</span> Product sense</div>
-  <h2>Three tiers, priced like the real business</h2>
+  <h2>Three service tiers</h2>
   <p>Once the intake is complete, the agent offers the caller a choice — modelled on the
   actual unit economics of an interpretation network.</p>
   <div class="cols cols-3">
@@ -542,11 +542,10 @@
     <div class="card hot">
       <h3>Video room <span class="tag">webrtc</span></h3>
       <p>A real Twilio Video room per request, join link emailed. Screenshare a form or
-      letter — and <strong>PSTN per-minute cost drops away</strong>.</p>
+      letter, and <strong>there's no PSTN per-minute cost</strong>.</p>
     </div>
   </div>
-  <p class="footnote">Any failure on the video path falls back to a human — the caller
-  never dead-ends.</p>
+  <p class="footnote">Any failure on the video path falls back to a human.</p>
 </section>
 
 <!-- 07 · Flex handoff -->
@@ -559,29 +558,30 @@
     <li><span>ConversationRelay POSTs it to the <code>&lt;Connect action&gt;</code> URL — a Studio Flow.</span></li>
     <li><span>The Flow's Send-to-Flex widget creates the TaskRouter task; an interpreter accepts the live call.</span></li>
   </ol>
-  <p class="footnote">The platform subtlety: in voice-only mode TAC's convenience helper
-  <code>createStudioHandoffTool</code> throws — the documented path is the
-  <code>pendingHandoffData</code> mechanism above. Set a property, don't call a helper.
-  Easy to miss; worth knowing.</p>
+  <p class="footnote">One platform detail worth knowing: in voice-only mode, TAC's
+  convenience helper <code>createStudioHandoffTool</code> throws an error. The documented
+  workaround is to set <code>session.pendingHandoffData</code> directly instead of calling
+  that helper — easy to miss if you're following the example code.</p>
 </section>
 
 <!-- 08 · Hard bits -->
 <section class="slide">
   <div class="eyebrow"><span class="n">08</span> Honest scoping</div>
-  <h2>What fought back</h2>
+  <h2>The hard parts</h2>
   <div class="cols cols-3">
     <div class="card">
       <h3>A2P 10DLC <span class="tag">error 30034</span></h3>
       <p>Carriers block unregistered SMS outright. The video link moved to email, and the
-      cross-channel bonus is gated on toll-free verification. On telephony,
-      <strong>compliance is architecture</strong>.</p>
+      cross-channel bonus is gated on toll-free verification. A compliance rule ended up
+      directly shaping how this feature works.</p>
     </div>
     <div class="card">
       <h3>Mid-call language switch</h3>
-      <p>Three layers had to line up: STT switched but TTS needed per-locale
-      <code>&lt;Language&gt;</code> voices, the model kept writing English, and the voice
-      sounded wrong until the <code>turbo_v2_5</code> ElevenLabs model. Working now — a live
-      call, not a smoke test, is what proved it.</p>
+      <p>Automatic language detection didn't work well for the callers who need it most —
+      English speech-to-text often garbles someone's first sentence in another language, so
+      the model can't reliably tell what they're speaking. Fixing that properly needed more
+      research than the take-home window allowed, so instead: the caller asks explicitly to
+      switch languages, and that choice is remembered on later calls.</p>
     </div>
     <div class="card">
       <h3>Hosting</h3>

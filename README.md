@@ -177,7 +177,7 @@ src/
   index.ts        TACServer wiring: VoiceChannel, onMessageReady → agent, /health, /requests, /deck
   agent.ts        the Claude tool loop, per-call state, memory seeding, edge cases
   tools.ts        tool schemas (set_caller_language, record_intake, choose_service_tier, request_handoff, decline_request)
-  intake.ts       IntakeRecord + the deterministic server-side completeness gate
+  intake.ts       IntakeRecord + the deterministic server-side completeness check
   language.ts     EN/ES/FR voice/locale config + the mid-call ConversationRelay language switch
   deflection.ts   tiered service: Twilio Video Room + SendGrid email of the join link
   handoff.ts      the Flex task-attributes payload for the human handoff

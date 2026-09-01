@@ -12,10 +12,10 @@ DTMF-only IVR** — one intent at a time, menu by menu.
 Replacing that with a conversational agent is what ConversationRelay and Agent Connect are
 for: a caller can voice several intents at once, in any order — *"I need a Spanish-to-English
 interpreter, male, for a doctor visit, and I need them immediately"* — and the agent captures
-all of it, confirms, and routes in one turn. That speed matters for the clinicians, lawyers,
-and community workers who need an interpreter the moment they're with someone they can't talk
-to. And the handoff to the interpreter is the deliverable, so capturing every detail before
-the handoff is what the intake has to get right.
+all of it, confirms, and routes in one turn. That speed matters when someone needs an
+interpreter right away — a doctor's visit, a legal appointment, a community intake call. The
+intake's job is to capture everything needed before the handoff to a human interpreter
+happens, since that handoff is the actual point of the call.
 
 The use case also carries a challenge real estate lacks: the caller may not speak English.
 The agent converses in English, Spanish, or French (see below).
@@ -43,14 +43,13 @@ overflow network downstream.
 A caller hits the Twilio number → `POST /twiml` returns
 `<Connect><ConversationRelay wss://…/ws>` → ConversationRelay holds a WebSocket open for
 the whole call and streams transcribed turns to `onMessageReady`, which calls the agent
-(`src/agent.ts`). The agent is a **Claude tool-use loop**: Claude proposes structured values
-through tools (`set_caller_language`, `record_intake`, `choose_service_tier`,
-`request_handoff`, `decline_request`); the server decides what to do with them.
+(`src/agent.ts`). The agent is a **Claude tool-use loop**: Claude calls tools with structured
+values (`set_caller_language`, `record_intake`, `choose_service_tier`, `request_handoff`,
+`decline_request`), and the server code decides what actually happens with each one.
 
-**How the agent decides it has enough info** — the headline design decision. It doesn't
-decide alone. Claude fills slots via `record_intake`, but a **deterministic server-side
-check** (`checkComplete` against `REQUIRED_SLOTS` in `src/intake.ts`) gates the handoff.
-Completeness is dictated by code, not model judgement.
+**How the agent decides it has enough info.** Claude doesn't decide this by itself. It fills
+in slots through `record_intake`, and a server-side check (`checkComplete` against
+`REQUIRED_SLOTS` in `src/intake.ts`) is what actually allows the handoff to go ahead.
 
 **Where state lives:** in-flight call state is an in-process map keyed by `conversationId`
 (correct on a single always-on machine); each completed request is written to Turso
@@ -68,21 +67,22 @@ speaks to the agent — drives its voice, transcription, and reply language), th
 `sourceLanguage` (the third party's language, always asked), and the `targetLanguage` (what
 the third party is interpreted into — the caller's own language, so it follows the caller's
 language on a switch). Switching is caller-driven: the call opens in English and the caller
-asks to continue in another language. Cold turn-1 detection of a foreign language is
-deliberately not used — English transcription mangles a foreign first utterance badly enough
-that the model can't classify it — so relying on it would misfire on exactly the callers it's
-meant to serve. `src/language.ts` holds the voice/locale config and the switch mechanism.
+asks to continue in another language. Detecting a foreign language automatically from the
+caller's first turn is deliberately not used — English transcription garbles a foreign first
+sentence badly enough that the model can't classify it — so it would fail for exactly the
+callers it's supposed to help. `src/language.ts` holds the voice/locale config and the switch
+mechanism.
 
-**Tiered deflection.** Once intake is complete, the agent offers three service tiers with an
-explicit cost framing: AI (cheapest), human (premium, live transfer), or a **video room**
-whose link is emailed. This models the customer's unit economics — the video/WebRTC path
-removes PSTN per-minute cost, the kind of tradeoff an interpreter network optimises for. Any
-failure in the video path falls back to a human rather than dead-ending the caller.
+**Tiered deflection.** Once intake is complete, the agent offers three service tiers: AI
+(cheapest), human (premium, live transfer), or a **video room** whose link is emailed. This
+is modeled on the customer's actual unit economics — the video/WebRTC path avoids the PSTN
+per-minute cost, which is the kind of tradeoff an interpreter network cares about. If the
+video path fails for any reason, it falls back to a human instead of leaving the caller
+stuck.
 
 ## What I built with agentic coding, and how I planned it
 
-Effectively all of it, with Claude Code, and this write-up's own trail is part of the answer.
-I planned before building: researched the real TAC/ConversationRelay API surface against the
+Effectively all of it, using Claude Code. I planned before building: researched the real TAC/ConversationRelay API surface against the
 installed package, and made the pivotal decisions up front (use case, model, hosting,
 persistence, which bonuses). The main technical risk was hosting: an early plan put the app
 on Cloudflare Workers (which I use routinely for personal MCP servers and cron jobs), but
@@ -92,7 +92,7 @@ nothing to port.
 
 The build was verification-driven — each feature has a runnable smoke script under `src/smoke/` 
 that exercises the real agent against scripted turns, plus a unit test suite around the completeness 
-gate. That loop caught real bugs a demo would have surfaced live: an agent turn that spoke only a tool call
+check. That loop caught real bugs a demo would have surfaced live: an agent turn that spoke only a tool call
 and produced dead air; "use the number I'm calling from" not resolving because the caller ID was
 hashed for memory but never surfaced to the model; a mid-call language switch that changed the
 TTS accent but not the words. Where a fix couldn't be verified without a phone, Claude said so and we
@@ -153,5 +153,5 @@ tested by ear on real calls.
   the array replaces wholesale) fixed the voice; a per-turn prompt directive plus a
   same-turn tool-result steer kept the model's own words in-language; and the voice sounded
   wrong in Spanish/French until I pinned the ElevenLabs `turbo_v2_5` model (its default is
-  English-first). A green smoke test proved the message was *sent*; only a live call proved
-  ConversationRelay *honoured* it — the kind of gap that's easy to miss.
+  English-first). A passing smoke test only showed that the message was sent — it took a live
+  call to confirm ConversationRelay actually acted on it, which is an easy gap to miss.

@@ -81,9 +81,9 @@ The shape that gets both is a **hybrid**, and it's the recommended pattern:
   long call task.
 
 The two are linked by a conversation ID, so the per-attempt tasks roll up to the one journey.
-This is where the real engineering of an overflow network lives — a database-backed
-orchestration layer that spawns and cancels the tracking tasks, cycles through the partner list
-on breach, and re-enqueues the call to the original workflow if every partner is exhausted. The
+This part — a database-backed orchestration layer that spawns and cancels the tracking tasks,
+cycles through the partner list on breach, and re-enqueues the call to the original workflow
+if every partner is exhausted — is most of the engineering work in an overflow network. The
 intake agent in this repo is the piece that makes every one of those routed tasks start with
 complete, structured context.
 
@@ -96,6 +96,6 @@ happens.
 Swapping the DTMF IVR for a conversational agent — Twilio Agent Connect and
 ConversationRelay — lets the caller give several intents at once, in any order:
 *"I need a Spanish-to-English interpreter, male, for a doctor visit, and I need them immediately."*
-The agent captures it, confirms, and routes in one turn. That matters most for the medical
-practitioners, lawyers, and community workers who need an interpreter the moment they're with
-someone they can't talk to.
+The agent captures it, confirms, and routes in one turn. That speed matters when someone
+needs an interpreter right away — a doctor's visit, a legal appointment, a community intake
+call.

@@ -50,11 +50,19 @@ interface LangCodes {
   voice?: string;
 }
 
-// One ElevenLabs multilingual male voice for every language, so the voice is
-// identical across languages and across a switch. Change this single ID to
-// re-voice the whole agent. Exported so the base greeting (defaultTwimlOptions)
-// uses the same voice as the conversation that follows.
-export const ELEVENLABS_VOICE = 'UgBBYS2sOqTuMpoF3BR0'; // "Mark" — CR's documented default ElevenLabs voice
+// One ElevenLabs voice for every language, so the voice is identical across
+// languages and across a switch. Change VOICE_ID to re-voice the whole agent.
+//
+// CRITICAL — the MODEL matters as much as the voice. ConversationRelay selects
+// the ElevenLabs model by appending `-<model>` to the voice ID, and its DEFAULT
+// is `flash_v2_5`, which is English-optimized — that is why voices sounded awful
+// in Spanish/French (they were being rendered by an English model, not the
+// voice's fault). `turbo_v2_5` is the multilingual model (32 languages incl. ES
+// and FR), so we pin it. To re-voice, change VOICE_ID only; keep the model
+// suffix unless you deliberately want a different one.
+const VOICE_ID = 'UgBBYS2sOqTuMpoF3BR0'; // "Mark"
+const TTS_MODEL = 'turbo_v2_5'; // multilingual; CR default flash_v2_5 is English-first
+export const ELEVENLABS_VOICE = `${VOICE_ID}-${TTS_MODEL}`;
 export const TTS_PROVIDER = 'ElevenLabs';
 
 const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };

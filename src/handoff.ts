@@ -90,11 +90,19 @@ export function buildHandoffData(conversationId: string, record: IntakeRecord): 
  * as a normal interpreter handoff (Send-to-Flex). The field lives under
  * `attributes` to match how the Studio template parses `handoffData`.
  */
-export function buildTerminateData(conversationId: string, reason: string): string {
+export function buildTerminateData(
+  conversationId: string,
+  reason: string,
+  record: IntakeRecord = {},
+): string {
+  // Carry the SAME attribute shape as a real handoff (via buildTaskAttributes)
+  // so any Studio parse/Set-Variables step that reads handoff fields
+  // (interpreterRequest, languagePair, conversations.*) finds them and does not
+  // throw on a decline — then layer the decline markers on top. The Flow still
+  // branches on `disposition` to hang up instead of Send-to-Flex.
   return JSON.stringify({
     attributes: {
-      type: 'interpreter_intake',
-      conversationId,
+      ...buildTaskAttributes(conversationId, record),
       disposition: 'declined',
       declineReason: reason,
     },

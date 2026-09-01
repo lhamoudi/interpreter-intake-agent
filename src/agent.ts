@@ -537,7 +537,7 @@ async function dispatchTool(
       if (deps.session) {
         deps.session.pendingHandoffData = {
           type: 'end',
-          handoffData: buildTerminateData(conversationId, reason),
+          handoffData: buildTerminateData(conversationId, reason, state.intake),
         };
         log.info({ conversationId }, 'decline: end payload set (Studio Flow will hang up)');
       }

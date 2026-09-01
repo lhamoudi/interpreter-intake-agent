@@ -48,8 +48,8 @@ values (`set_caller_language`, `record_intake`, `choose_service_tier`, `request_
 in slots through `record_intake`, and a server-side check (`checkComplete` against
 `REQUIRED_SLOTS` in `src/intake.ts`) is what actually allows the handoff to go ahead.
 
-**Where state lives:** in-flight call state is an in-process map keyed by `conversationId`
-(correct on a single always-on machine); each completed request is written to Turso
+**Where state lives:** in-flight call state is an in-process map keyed by `conversationId`;
+each completed request is written to Turso
 (`requests`); cross-call memory is a salted **hash of the caller number** in `callers`,
 which is what lets a returning caller be recognised. Failures degrade rather than crash: a
 Turso outage is caught and logged; a mid-call hang-up flushes the partial record as

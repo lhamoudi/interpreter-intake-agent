@@ -1,11 +1,9 @@
 /**
  * The intake record and its completeness rules.
  *
- * Design decision that the panel will probe ("how does the agent decide it has
- * enough info?"): the LLM proposes slot values via the `record_intake` tool, but
- * it does NOT get to decide the intake is done. Completeness is a deterministic,
- * server-side check against REQUIRED_SLOTS. The agent may only hand off once this
- * function says the record is complete.
+ * Claude fills in slot values via the `record_intake` tool, but a deterministic
+ * server-side check against REQUIRED_SLOTS decides when the intake is actually
+ * complete. The agent may only hand off once this function says so.
  */
 
 export type GenderPreference = 'male' | 'female' | 'no_preference';
@@ -70,7 +68,7 @@ function isBlank(v: unknown): boolean {
   return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 }
 
-/** Deterministic completeness check. This — not the model — gates handoff. */
+/** Deterministic completeness check — the only thing allowed to trigger a handoff. */
 export function checkComplete(record: IntakeRecord): Completeness {
   const missing = REQUIRED_SLOTS.filter((slot) => isBlank(record[slot]));
   return { complete: missing.length === 0, missing: [...missing] };

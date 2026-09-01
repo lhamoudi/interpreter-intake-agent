@@ -1,7 +1,6 @@
 /**
- * Language handling — the accessibility feature that makes this an interpreter
- * product rather than a generic form-filler. A caller who speaks Spanish or
- * French should be met in their own language, not forced into English.
+ * Language handling: lets a caller who speaks Spanish or French be met in
+ * their own language instead of being forced into English.
  *
  * IMPORTANT — three distinct languages are in play; do not conflate them:
  *   - CALLER-spoken language: what the caller speaks to THIS agent (English,

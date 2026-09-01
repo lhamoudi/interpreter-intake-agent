@@ -1,10 +1,10 @@
 /**
  * Tool definitions the agent uses, as native Anthropic tool schemas.
  *
- * The model proposes structured values through these tools; the server decides
- * what to do with them. `record_intake` accepts partial updates (every field
- * optional) so the agent can fill slots as they come up in natural conversation
- * rather than as a rigid form.
+ * Claude calls these tools with structured values, and the server code decides
+ * what actually happens with each one. `record_intake` accepts partial updates
+ * (every field optional) so the agent can fill slots as they come up in
+ * natural conversation rather than as a rigid form.
  */
 
 import type Anthropic from '@anthropic-ai/sdk';

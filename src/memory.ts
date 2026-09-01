@@ -147,7 +147,7 @@ export async function saveRequest(params: {
   });
 }
 
-/** Read-back for the coordinator dashboard (GET /requests). */
+/** Read-back for a coordinator/reviewer (GET /requests). */
 export async function listRequests(limit = 50): Promise<Record<string, unknown>[]> {
   const res = await db().execute({
     sql: 'SELECT id, conversation_id, status, source_language, target_language, gender_preference, industry, service_tier, notes, created_at, completed_at FROM requests ORDER BY created_at DESC LIMIT ?',

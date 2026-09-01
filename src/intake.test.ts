@@ -1,7 +1,7 @@
 /**
- * The completeness gate is the headline design decision for Q&A ("how does the
- * agent decide it has enough info?") — the model proposes via record_intake, but
- * this deterministic check is what actually gates handoff. Covered directly.
+ * Tests for the completeness check that decides when the intake is done:
+ * Claude fills slots via record_intake, but checkComplete against
+ * REQUIRED_SLOTS is what actually decides.
  */
 
 import { describe, expect, it } from 'vitest';

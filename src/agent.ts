@@ -3,9 +3,9 @@
  *
  * Called from TAC's `onMessageReady` with the caller's transcribed utterance.
  * Returns the words to speak back. State for the in-flight call lives in an
- * explicit in-process store keyed by conversationId — deliberately simple, and
- * correct on a single always-on instance. The scale path (per-call actor so any
- * node can serve any socket) is documented in the README, not built here.
+ * explicit in-process store keyed by conversationId. The scale path (per-call
+ * actor so any node can serve any socket) is documented in the README, not
+ * built here.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -292,9 +292,9 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
     }
   }
 
-  // Belt-and-suspenders: if every hop somehow produced only tool calls and no
-  // words, don't hand the channel an empty string — on a live call that reads
-  // as dead air.
+  // Fallback: if every hop somehow produced only tool calls and no words,
+  // don't hand the channel an empty string — on a live call that reads as
+  // dead air.
   return spoken.join(' ') || 'Got it, thank you.';
 }
 

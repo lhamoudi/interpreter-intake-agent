@@ -131,7 +131,7 @@ tested by ear on real calls.
   Anthropic / Turso spend; and **secret rotation** — the API keys are set-once in Fly secrets
   today, and would move to short-lived, rotatable credentials in a secrets manager.
 - **Deliverability** for the video email (needs SPF/DKIM records on the sending domain — as it 
-  currently lands in spam as a fresh sender), and real toll-free/10DLC registration to unlock SMS.
+  currently lands in spam as a fresh sender), and real toll-free/10DLC registration to enable SMS.
 - **AWS Stack.** I would likely opt away from the multiple vendors (Fly.io, Turso, Cloudflare) and 
   opt for the entire infrastructure living on the AWS stack (API Gateway, Lambdas, Dynamo, Route 53)
   - to better align with the customer's tech stack and simplify deployment, troubleshooting, 

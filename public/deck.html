@@ -471,8 +471,8 @@
   <div class="quote">"I need a Spanish-to-English interpreter, male, for a doctor visit —
   and I need them immediately."</div>
   <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters for
-  time-sensitive intake — a doctor's visit, a legal appointment, an intake line.
-  The handoff to a human is the actual goal, so the intake needs to gather everything
+  time-sensitive intake — a medical emergency, a legal urgency, a police encounter.
+  The handoff to a human is the actual goal/product, so the intake needs to gather everything
   before that happens.</p>
 </section>
 
@@ -492,9 +492,6 @@
       <div class="fnode"><b>Handoff</b><span>Studio → Flex · Video + email</span></div>
     </div>
   </div>
-  <p class="footnote">In-flight state lives in-process on one always-on machine.
-  Durable state → Turso. Cross-call memory → a salted hash of the caller's number, which is
-  what makes "welcome back" work. Fronted by a Cloudflare-managed domain, DNS-only.</p>
 </section>
 
 <!-- 05 · Completeness check -->
@@ -552,16 +549,10 @@
 <section class="slide">
   <div class="eyebrow"><span class="n">07</span> Human handoff</div>
   <h2>Live transfer into Flex — with the context attached</h2>
-  <ol class="steps">
-    <li><span>Server sets <code>session.pendingHandoffData</code> with the full lead as task attributes.</span></li>
-    <li><span>TAC emits the ConversationRelay <code>end</code> message after the agent's final words.</span></li>
-    <li><span>ConversationRelay POSTs it to the <code>&lt;Connect action&gt;</code> URL — a Studio Flow.</span></li>
-    <li><span>The Flow's Send-to-Flex widget creates the TaskRouter task; an interpreter accepts the live call.</span></li>
-  </ol>
-  <p class="footnote">One platform detail worth knowing: in voice-only mode, TAC's
-  convenience helper <code>createStudioHandoffTool</code> throws an error. The documented
-  workaround is to set <code>session.pendingHandoffData</code> directly instead of calling
-  that helper — easy to miss if you're following the example code.</p>
+  <p>When the caller picks the human tier, the full intake travels with the call as Flex
+  task attributes. The caller stays on the line the whole time — a live transfer, not a
+  callback — and an interpreter in Flex accepts the task and picks up the call already
+  in progress.</p>
 </section>
 
 <!-- 08 · Hard bits -->

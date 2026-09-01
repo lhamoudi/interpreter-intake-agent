@@ -1,5 +1,5 @@
 /**
- * Tiered-service deflection — the FDE-economics differentiator.
+ * Tiered-service deflection.
  *
  * Once the required intake is complete, the caller is offered three ways to be
  * served, with an explicit cost/tradeoff framing:

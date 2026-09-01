@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Conversational voice AI agent that intakes over-the-phone interpretation (OPI) requests and hands off to a human interpreter — Twilio Agent Connect + Claude.",
+  "description": "Conversational voice AI agent that intakes over-the-phone interpretation (OPI) requests and hands off to a human interpreter - Twilio Agent Connect + Claude.",
   "engines": {
     "node": ">=22"
   },
@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "reset-demo": "tsx src/smoke/reset-demo-data.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

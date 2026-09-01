@@ -124,6 +124,14 @@ npm run typecheck
 npm test
 ```
 
+**Before a demo**, clear returning-caller memory so the demo number isn't recognised as a
+repeat caller from earlier test calls:
+
+```bash
+npm run reset-demo             # clears the callers (memory) table only
+npm run reset-demo -- --requests   # also clears the requests table, for a fully blank slate
+```
+
 ---
 
 ## Environment variables

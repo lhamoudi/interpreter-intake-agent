@@ -26,14 +26,19 @@ import type { VoiceChannel, ConversationId } from 'twilio-agent-connect';
  * Map a spoken language name to the codes and voice ConversationRelay needs.
  * Scoped to the three we have VERIFIED live — English, Spanish, French.
  *
- * All three use the SAME ElevenLabs multilingual voice (Adam), so the caller
- * hears one consistent male voice whichever language they use and across a
- * mid-call switch — rather than the jarring provider/timbre change we had when
- * English was ElevenLabs (CR default) but ES/FR were Google Neural2. ElevenLabs'
- * multilingual v2 model speaks a single voice ID natively in each of these
- * languages. A locale still MUST be declared as a `<Language>` child WITH this
- * voice for mid-call TTS switching to it to work (a bare `<Language code>` broke
- * the call entirely against CR's default provider).
+ * All three use the SAME ElevenLabs multilingual voice, so the caller hears one
+ * consistent male voice whichever language they use and across a mid-call switch —
+ * rather than the jarring provider/timbre change we had when English was
+ * ElevenLabs (CR default) but ES/FR were Google Neural2. ElevenLabs' multilingual
+ * model speaks a single voice ID natively in each of these languages. A locale
+ * still MUST be declared as a `<Language>` child WITH this voice for mid-call TTS
+ * switching to it to work (a bare `<Language code>` broke the call entirely
+ * against CR's default provider).
+ *
+ * NOTE on picking the ID: the legacy "Adam" (pNInz6obpgDQGcFmaJgB) is a
+ * narration voice — loud and theatrical, wrong for a calm intake line. Use a
+ * conversational-tuned voice ID (copied from the ElevenLabs voice's "Copy Voice
+ * ID"). Same name can map to very different voices; audition the exact variant.
  *
  * `transcription` = STT locale, `tts` = TTS locale, `ttsProvider`/`voice` pin the
  * exact synthesis voice.
@@ -45,11 +50,11 @@ interface LangCodes {
   voice?: string;
 }
 
-// One ElevenLabs multilingual male voice (Adam) for every language, so the voice
-// is identical across languages and across a switch. Change this single ID to
+// One ElevenLabs multilingual male voice for every language, so the voice is
+// identical across languages and across a switch. Change this single ID to
 // re-voice the whole agent. Exported so the base greeting (defaultTwimlOptions)
 // uses the same voice as the conversation that follows.
-export const ELEVENLABS_VOICE = 'pNInz6obpgDQGcFmaJgB'; // ElevenLabs "Adam" (multilingual v2)
+export const ELEVENLABS_VOICE = 's3TPKV1kjDlVtZbl4Ksh'; // calm/conversational male
 export const TTS_PROVIDER = 'ElevenLabs';
 
 const EN: LangCodes = { transcription: 'en-US', tts: 'en-US', ttsProvider: TTS_PROVIDER, voice: ELEVENLABS_VOICE };

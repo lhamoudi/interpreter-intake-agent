@@ -56,7 +56,13 @@ function langMessages() {
 }
 
 async function main() {
-  await initCall(conversationId as unknown as string, '+15551234567');
+  // A FRESH caller number each run so this always exercises the new-caller path
+  // (call opens in English, caller asks to switch). A fixed number can resolve to
+  // a returning caller already preset to Spanish from a prior run's persisted
+  // memory, in which case the anti-thrash guard correctly suppresses the first
+  // switch message and the assertion below would misread that as a miss.
+  const caller = `+1555${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
+  await initCall(conversationId as unknown as string, caller);
 
   for (const [i, turn] of turns.entries()) {
     console.log(`\n--- turn ${i + 1} ---`);

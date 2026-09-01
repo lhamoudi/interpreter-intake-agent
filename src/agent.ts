@@ -606,15 +606,17 @@ async function finalizeComplete(
 export async function endCall(conversationId: string): Promise<void> {
   const state = calls.get(conversationId);
   if (!state) return;
-  const endStatus = state.declined ? 'declined' : state.handoffDone ? 'complete' : 'abandoned';
-  log.info({ conversationId, status: endStatus }, 'call ended');
+  // A completed or declined call already persisted itself; only a mid-call
+  // hang-up reaches here unpersisted, and its partial record is 'abandoned'.
+  const status = state.declined ? 'declined' : state.handoffDone ? 'complete' : 'abandoned';
+  log.info({ conversationId, status }, 'call ended');
   try {
     if (!state.persisted) {
       await saveRequest({
         id: randomUUID(),
         conversationId,
         callerHash: state.callerHash,
-        status: state.handoffDone ? 'complete' : 'abandoned',
+        status,
         record: state.intake,
       });
     }

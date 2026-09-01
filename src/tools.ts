@@ -100,12 +100,12 @@ export const REQUEST_HANDOFF: Anthropic.Tool = {
 export const SET_CALLER_LANGUAGE: Anthropic.Tool = {
   name: 'set_caller_language',
   description:
-    'Report the language the CALLER is speaking to you, detected from their words. Call this on ' +
-    'your first turn and again ANY time the caller switches language mid-call. This is the ' +
-    'language you converse in — it controls the voice you speak in and the transcription of what ' +
-    'the caller says. It also defaults the interpreter\'s target language (what their third party ' +
-    'gets interpreted into). It is NOT the third party\'s language (that is record_intake ' +
-    'sourceLanguage). Only English, Spanish, and French are supported.',
+    'Set the language the CALLER is speaking to you. Call this when the caller asks to continue ' +
+    'in another language, or once they are clearly conversing in one — not from a garbled first ' +
+    'utterance. This is the language you converse in: it controls the voice you speak in and the ' +
+    'transcription of what the caller says. It also defaults the interpreter\'s target language ' +
+    '(what their third party gets interpreted into). It is NOT the third party\'s language (that ' +
+    'is record_intake sourceLanguage). Only English, Spanish, and French are supported.',
   input_schema: {
     type: 'object',
     additionalProperties: false,

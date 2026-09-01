@@ -29,9 +29,10 @@ const BRIEF_PATH = path.join(__dirname, '..', 'private', 'fde-take-home-brief.pd
 
 const log = createLogger({ name: 'server' });
 
-// Trilingual invitation: the agent can converse in English, Spanish, or French,
-// and detects which the caller uses from their first reply. Spoken by the base
-// English voice until the first utterance is classified.
+// Trilingual invitation: the agent can converse in English, Spanish, or French.
+// The call opens in English; the caller switches by asking (cold turn-1
+// detection from a mistranscribed foreign utterance is not relied on — see
+// language.ts). A returning caller is instead preset to their known language.
 const NEW_CALLER_GREETING =
   'Thanks for calling. I can connect you with an interpreter — you can speak to me in English, ' +
   'Spanish, or French. Puede hablarme en español. Vous pouvez me parler en français. ' +

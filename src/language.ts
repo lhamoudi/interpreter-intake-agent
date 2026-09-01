@@ -5,8 +5,9 @@
  *
  * IMPORTANT — three distinct languages are in play; do not conflate them:
  *   - CALLER-spoken language: what the caller speaks to THIS agent (English,
- *     Spanish, or French). Detected each turn; drives the bot's STT/TTS/reply
- *     language via the machinery here. This is what this file is about.
+ *     Spanish, or French). Set when the caller asks to switch (not cold-detected);
+ *     drives the bot's STT/TTS/reply language via the machinery here. This is what
+ *     this file is about.
  *   - sourceLanguage (in intake.ts): the THIRD PARTY's language the caller needs
  *     interpreted (their patient/client). Asked, never detected. Not here.
  *   - targetLanguage (in intake.ts): what the third party is interpreted INTO —

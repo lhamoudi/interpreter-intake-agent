@@ -21,7 +21,7 @@ import {
   summarize,
 } from './intake.js';
 import { deflectToVideoRoom } from './deflection.js';
-import { buildHandoffData } from './handoff.js';
+import { buildHandoffData, buildTerminateData } from './handoff.js';
 import {
   hashCaller,
   getCallerMemory,
@@ -530,7 +530,22 @@ async function dispatchTool(
       } catch (err) {
         log.error({ conversationId, err }, 'failed to persist declined request');
       }
-      return JSON.stringify({ ok: true, declined: true, message: 'Politely end the call.' });
+      // End the LIVE call after the goodbye: set the ConversationRelay handoff
+      // payload marked as a decline. When ConversationRelay emits `end`, control
+      // returns to the <Connect action> Studio Flow, which branches on
+      // attributes.disposition === 'declined' to hang up (instead of Send-to-Flex).
+      if (deps.session) {
+        deps.session.pendingHandoffData = {
+          type: 'end',
+          handoffData: buildTerminateData(conversationId, reason),
+        };
+        log.info({ conversationId }, 'decline: end payload set (Studio Flow will hang up)');
+      }
+      return JSON.stringify({
+        ok: true,
+        declined: true,
+        message: 'Say a brief polite goodbye — the call will end automatically after you speak.',
+      });
     }
 
     default:

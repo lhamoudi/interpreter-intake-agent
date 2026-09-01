@@ -77,3 +77,26 @@ export function buildTaskAttributes(
 export function buildHandoffData(conversationId: string, record: IntakeRecord): string {
   return JSON.stringify({ attributes: buildTaskAttributes(conversationId, record) });
 }
+
+/**
+ * Payload for ending a call that is NOT being transferred to a human — a declined
+ * (spam / wrong-number / not-a-lead) caller. Sent via the same ConversationRelay
+ * `end` mechanism as a handoff, so control returns to the `<Connect action>`
+ * Studio Flow, but marked so the Flow branches to a hang-up instead of
+ * Send-to-Flex.
+ *
+ * STUDIO FLOW CONTRACT: branch on `attributes.disposition`. When it equals
+ * `"declined"`, run a Hangup (optionally a brief Say first). Otherwise treat it
+ * as a normal interpreter handoff (Send-to-Flex). The field lives under
+ * `attributes` to match how the Studio template parses `handoffData`.
+ */
+export function buildTerminateData(conversationId: string, reason: string): string {
+  return JSON.stringify({
+    attributes: {
+      type: 'interpreter_intake',
+      conversationId,
+      disposition: 'declined',
+      declineReason: reason,
+    },
+  });
+}

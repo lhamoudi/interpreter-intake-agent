@@ -11,7 +11,7 @@
  *   - sourceLanguage (in intake.ts): the THIRD PARTY's language the caller needs
  *     interpreted (their patient/client). Asked, never detected. Not here.
  *   - targetLanguage (in intake.ts): what the third party is interpreted INTO —
- *     the caller's own language. Defaults to the detected caller language.
+ *     the caller's own language. Follows the caller-spoken language.
  *
  * ConversationRelay carries STT (transcription) and TTS languages. We set the
  * INITIAL caller language per-call from the TwiML customizer, and SWITCH mid-call
@@ -72,9 +72,9 @@ const FR: LangCodes = { transcription: 'fr-FR', tts: 'fr-FR', ttsProvider: TTS_P
 
 /**
  * Language name → codes. Keyed by the English name AND the endonym/other-language
- * names a caller (or the model) might use, so detection works regardless of which
- * language the name is spoken in. All aliases for one language map to the same
- * LangCodes.
+ * names a caller (or the model) might use, so a switch request resolves regardless
+ * of which language the name is spoken in. All aliases for one language map to the
+ * same LangCodes.
  */
 const LANGUAGES: Record<string, LangCodes> = {
   english: EN, anglais: EN, ingles: EN, 'inglés': EN, englisch: EN,

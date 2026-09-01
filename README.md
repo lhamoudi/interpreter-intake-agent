@@ -5,10 +5,9 @@ to book an over-the-phone interpreter, and hands the caller off to a human — b
 **Twilio Agent Connect** (ConversationRelay) with **Claude** driving the conversation.
 
 Real-estate scenario swapped for an
-**over-the-phone interpretation (OPI) intake** use case (explicitly permitted by the
-brief). Interpretation intake carries a challenge the real-estate scenario lacks — the
-caller may not speak English — and a handoff that has to happen while the caller is still
-on the line.
+**over-the-phone interpretation (OPI) intake** use case. Interpretation intake carries 
+a challenge the real-estate scenario lacks — the caller may not speak English — and a 
+handoff that **has** to happen while the caller is still on the line.
 
 **Live number:** call **+1 833-918-3352** and ask for an interpreter.
 **Demo companion deck:** [intake.kingofthevegetables.com/deck](https://intake.kingofthevegetables.com/deck).
@@ -77,24 +76,22 @@ in dead air — the agent apologises in their language and routes them into the 
    Also served: GET /requests and GET /health, and GET /deck (the demo companion deck).
 ```
 
-**Where state lives** (the "what happens when things fail" question):
+**Where state lives**
 - **In-flight call state** lives in the `TACServer` process, keyed by `conversationId`.
-  On a single always-on Fly machine this is correct and simple.
-- **Durable record** of each request → Turso `requests` (retrievable via `GET /requests`;
-  intentionally unauthenticated for the demo — in production it would sit behind auth).
-- **Cross-call memory** → Turso `callers`, keyed by a salted hash of the caller number.
+- **Durable record** of each request → Turso `requests` table.
+- **Cross-call memory** → Turso `callers` table, keyed by a salted hash of the caller number.
 - If Turso is unreachable, lookups/writes are caught and logged; the call still completes.
 - If the caller hangs up mid-intake, the partial record is persisted as `abandoned`; a
-  declined call is persisted as `declined` for audit.
+  declined call is persisted as `declined` for audit purposes.
 - If the model call fails mid-call, the caller is routed into the human queue (via the same
-  Studio → Flex handoff) with a spoken apology — never dead air.
+  Studio → Flex handoff) with a spoken apology. No dead air!
 
 ---
 
 ## Running it locally
 
 Prerequisites: Node 22+, a Twilio account with a number, an Anthropic API key, a Turso
-database, and (for the video tier) a SendGrid sender.
+database, and (for the video "tier") a SendGrid sender to email from.
 
 ```bash
 npm install
@@ -159,14 +156,13 @@ fly deploy
 fly scale count 1   # keep exactly ONE machine — see below
 ```
 
-Fronted by a Cloudflare-managed domain: a **DNS-only** (grey-cloud) A/AAAA record points
+Fronted by a Cloudflare-managed domain: a **DNS-only** (grey-cloud) CNAME record points
 `intake.<domain>` at the Fly app, and `fly certs add intake.<domain>` issues TLS.
 
-> **One machine, on purpose.** In-flight call state lives in the process, so the app must
+> **One machine, intentionally.** In-flight call state lives in the process, so the app must
 > run a single always-on machine (`min_machines_running = 1`, `auto_stop_machines = false`
-> in `fly.toml`). Fly's HA default launches two on first deploy — scale back to one. The
-> horizontal-scale path (a per-call actor so any node can serve any socket) is described in
-> the write-up.
+> in `fly.toml`). Fly's HA default launches two on first deploy — so scaled back to one. The
+> horizontal-scale path is described in the write-up.
 
 ---
 
@@ -183,7 +179,7 @@ src/
   handoff.ts      the Flex task-attributes payload for the human handoff
   memory.ts       Turso reads/writes (requests + caller memory)
   smoke/          runnable scripts that exercise the agent without a phone
-public/deck.html  the demo companion deck (served at /deck)
+public/deck.html  the demo companion deck (served at /deck) on Fly
 schema.sql        Turso tables
 Dockerfile
 fly.toml

@@ -12,10 +12,8 @@ DTMF-only IVR** — one intent at a time, menu by menu.
 Replacing that with a conversational agent is what ConversationRelay and Agent Connect are
 for: a caller can voice several intents at once, in any order — *"I need a Spanish-to-English
 interpreter, male, for a doctor visit, and I need them immediately"* — and the agent captures
-all of it, confirms, and routes in one turn. That speed matters when someone needs an
-interpreter right away — a doctor's visit, a legal appointment, a community intake call. The
-intake's job is to capture everything needed before the handoff to a human interpreter
-happens, since that handoff is the actual point of the call.
+all of it, confirms, and routes (even in one long utterance from the caller!). That speed matters when someone needs an interpreter right away — a doctor's visit, a legal appointment, a community intake call. The intake's job is to capture everything needed before the handoff to a human
+interpreter happens, since that handoff is the actual point of the call. 
 
 The use case also carries a challenge real estate lacks: the caller may not speak English.
 The agent converses in English, Spanish, or French (see below).
@@ -26,17 +24,16 @@ overflow network downstream.
 ## Twilio primitives used, and why
 
 - **Agent Connect (TAC) + ConversationRelay** for the voice channel. TAC owns the
-  WebSocket loop, TwiML, ASR/TTS and session lifecycle; I drive its `onMessageReady`
+  WebSocket loop, TwiML, ASR/TTS and session lifecycle; this solution drives its `onMessageReady`
   callback. Running the *stock* `TACServer` unmodified was a deliberate choice — it keeps
   the surface I own small and left nothing to port (see "what I'd change").
 - **Studio Flow → Flex** for the human handoff — a **live transfer**, not a message to a queue:
   the caller stays on the line and is connected to an interpreter who accepts the task in Flex,
-  with the captured intake carried on the **task attributes** (surfaced in the stock screen-pop
-  via the conventional keys; the full record is on the task for the customer's existing
-  interpreter Flex plugin to render).
-- **Twilio Video** for the deflection tier — a real WebRTC room created per request.
-- **SendGrid** (Twilio-owned) to email the video join link.
-- **DTMF + speech** via ConversationRelay config (spoken ten-digit strings transcribe badly).
+  with the captured intake carried on the **task attributes** for use in a (future) Flex Plugin.
+- **Twilio Video** for the deflection tier — a real WebRTC room created per request. No video app
+  was built for demo (future work deemed not best use of take-home time). 
+- **SendGrid** (Twilio-owned) to email the video join link - since SMS blocked by 10DLC/toll-free 
+  verification delays.
 
 ## Architectural overview — components, data flow, state
 

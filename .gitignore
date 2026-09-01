@@ -11,3 +11,4 @@ dist/
 # never fails on a fresh clone that lacks the real file.)
 private/*
 !private/.gitkeep
+docs/DEMO-AGENDA.md

@@ -363,9 +363,11 @@ async function dispatchTool(
       const prevCodes = resolveLanguage(prev ?? 'English');
       const changed = codes.tts !== prevCodes?.tts;
 
-      // Default the interpreter's target language to the caller's own language,
-      // unless the caller has already stated a different target.
-      if (!state.intake.targetLanguage) state.intake.targetLanguage = canonical;
+      // The interpreter's target language IS the caller's own language: the third
+      // party is interpreted INTO whatever the caller speaks. So it must track the
+      // caller language, including when they switch mid-call — not just get
+      // defaulted once. (Set it whenever the caller language is (re)confirmed.)
+      state.intake.targetLanguage = canonical;
 
       if (!changed) {
         // No-op: same language as we're already on. Send nothing (anti-thrash).

@@ -6,9 +6,9 @@ to book an over-the-phone interpreter, and hands the caller off to a human — b
 
 Real-estate scenario swapped for an
 **over-the-phone interpretation (OPI) intake** use case (explicitly permitted by the
-brief). Interpretation intake is a domain with a genuine AI challenge the real-estate
-scenario lacks — the caller may not speak English — and a hard-real-time handoff where
-the handoff *is* the product.
+brief). Interpretation intake carries a challenge the real-estate scenario lacks — the
+caller may not speak English — and a handoff that has to happen while the caller is still
+on the line.
 
 **Live number:** call **+1 833-918-3352** and ask for an interpreter.
 **Demo companion deck:** [intake.kingofthevegetables.com/deck](https://intake.kingofthevegetables.com/deck).
@@ -17,10 +17,11 @@ the handoff *is* the product.
 
 ## What it does
 
-1. Answers the call and greets the caller (returning callers are recognised and greeted
-   by name of their usual language).
+1. Answers the call and greets the caller. Returning callers are recognised and greeted in
+   the language they last used.
 2. Collects the intake naturally (not a rigid form):
-   - the language they need an interpreter for (interpreted into English by default),
+   - the third party's language — the language the caller needs interpreted (their patient
+     or client); asked, not assumed,
    - male / female / no preference,
    - the subject area (medical, legal, community) — optional, for matching,
    - anything else that matters (free-text notes).
@@ -32,8 +33,18 @@ the handoff *is* the product.
    carrying the full captured context.
 5. Persists every request so a coordinator can retrieve it after the call.
 
+It can converse in **English, Spanish, or French**. The call opens in English (or, for a
+returning caller, the language they last used); if the caller asks to continue in another
+of the three, the agent switches its own voice and transcription and carries on. The
+caller's own language is what the third party is interpreted *into* (the `targetLanguage`),
+so it follows the switch. Detecting a foreign language cold from the first utterance is
+deliberately not relied on — English transcription mangles a foreign first sentence — so
+the switch is caller-driven (see [WRITEUP.md](WRITEUP.md)).
+
 It also handles the awkward calls: a caller who changes an answer, asks something out of
-scope, hangs up mid-flow, or clearly isn't a real interpreter request.
+scope, hangs up mid-flow, or clearly isn't a real interpreter request (politely declined,
+which ends the call cleanly). If the model is unreachable mid-call, the caller is not left
+in dead air — the agent apologises in their language and routes them into the human queue.
 
 ---
 
@@ -63,7 +74,7 @@ scope, hangs up mid-flow, or clearly isn't a real interpreter request.
 
    Front door: the Cloudflare-managed domain intake.kingofthevegetables.com
                (DNS-only) fronts the Fly app; TLS by Fly.
-   Read-back:  GET /requests and GET /health on the same server.
+   Also served: GET /requests and GET /health, and GET /deck (the demo companion deck).
 ```
 
 **Where state lives** (the "what happens when things fail" question):
@@ -73,7 +84,10 @@ scope, hangs up mid-flow, or clearly isn't a real interpreter request.
   intentionally unauthenticated for the demo — in production it would sit behind auth).
 - **Cross-call memory** → Turso `callers`, keyed by a salted hash of the caller number.
 - If Turso is unreachable, lookups/writes are caught and logged; the call still completes.
-- If the caller hangs up mid-intake, the partial record is persisted as `abandoned`.
+- If the caller hangs up mid-intake, the partial record is persisted as `abandoned`; a
+  declined call is persisted as `declined` for audit.
+- If the model call fails mid-call, the caller is routed into the human queue (via the same
+  Studio → Flex handoff) with a spoken apology — never dead air.
 
 ---
 
@@ -101,6 +115,7 @@ call the number.
 ```bash
 npx tsx src/smoke/conversation.ts   # a normal intake (needs ANTHROPIC_API_KEY)
 npx tsx src/smoke/industry.ts       # subject-area capture from plain language
+npx tsx src/smoke/language.ts       # ask-to-switch EN→ES→EN, target-language follows
 npx tsx src/smoke/handoff.ts        # verifies the Flex handoff payload
 LIVE_VIDEO=1 TEST_EMAIL_TO=you@example.com npx tsx src/smoke/deflection.ts  # real video room + email
 ```
@@ -159,14 +174,16 @@ Fronted by a Cloudflare-managed domain: a **DNS-only** (grey-cloud) A/AAAA recor
 
 ```
 src/
-  index.ts        TACServer wiring: VoiceChannel, onMessageReady → agent, /health, /requests
+  index.ts        TACServer wiring: VoiceChannel, onMessageReady → agent, /health, /requests, /deck
   agent.ts        the Claude tool loop, per-call state, memory seeding, edge cases
-  tools.ts        tool schemas (record_intake, choose_service_tier, request_handoff, decline_request)
+  tools.ts        tool schemas (set_caller_language, record_intake, choose_service_tier, request_handoff, decline_request)
   intake.ts       IntakeRecord + the deterministic server-side completeness gate
+  language.ts     EN/ES/FR voice/locale config + the mid-call ConversationRelay language switch
   deflection.ts   tiered service: Twilio Video Room + SendGrid email of the join link
   handoff.ts      the Flex task-attributes payload for the human handoff
   memory.ts       Turso reads/writes (requests + caller memory)
   smoke/          runnable scripts that exercise the agent without a phone
+public/deck.html  the demo companion deck (served at /deck)
 schema.sql        Turso tables
 Dockerfile
 fly.toml

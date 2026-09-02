@@ -222,7 +222,7 @@ flowchart LR
   AG -->|"sets session.pendingHandoffData"| TAC
 ```
 
-### Startup: main() runs once, then it's all callbacks
+### Sets up TAC VoiceChannel and webhooks
 
 `main()` in `src/index.ts` runs exactly once, at boot - it is not invoked per call. It registers
 three callbacks and starts the server, then returns; everything else in this section is one of

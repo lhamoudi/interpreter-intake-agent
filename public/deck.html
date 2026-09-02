@@ -870,7 +870,7 @@
   shared record and completeness check.</p>
   <figure class="fig">
     <div class="figwrap">
-      <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. Arrows show runtime calls, not type imports.">
+      <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. Finally, agent.ts sets session.pendingHandoffData on the TAC session, which ConversationRelay turns into the end message that drives the Studio and Flex handoff. Arrows show runtime calls, not type imports.">
         <defs>
           <marker id="km-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
@@ -918,6 +918,16 @@
         <text x="785" y="496" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="14" font-weight="700" fill="var(--red)">intake.ts</text>
         <text x="785" y="514" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--ink)">IntakeRecord + the completeness check · no internal deps</text>
 
+        <!-- the handoff back OUT to the platform (the final piece) -->
+        <rect x="230" y="392" width="320" height="66" fill="var(--surface)" stroke="currentColor" stroke-width="1.4" stroke-dasharray="5 4"></rect>
+        <text x="390" y="418" text-anchor="middle" font-family="Archivo,sans-serif" font-size="12.5" font-weight="700" fill="var(--ink-2)">TAC session · ConversationRelay</text>
+        <text x="390" y="435" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">platform, not our code -</text>
+        <text x="390" y="448" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">emits the end message → Studio → Flex</text>
+
+        <!-- agent -> session (the pendingHandoffData drive) -->
+        <polyline points="240,314 240,352 300,352 300,388" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="248" y="336" font-family="JetBrains Mono,monospace" font-size="9.5" fill="var(--ink-2)">sets session.pendingHandoffData</text>
+
         <!-- ============ index.ts edges (down + right) ============ -->
         <!-- index -> agent -->
         <line x1="155" y1="98" x2="155" y2="238" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></line>
@@ -963,7 +973,10 @@
     <span class="mono">index.ts</span> drives one turn through <span class="mono">agent.ts</span>,
     which calls out to each module; <span class="mono">agent.ts</span> calls
     <span class="mono">checkComplete</span> in <span class="mono">intake.ts</span> (red) to gate
-    every handoff. A map for reading the code, not a slide for the panel.</figcaption>
+    every handoff. The final piece leaves the code: <span class="mono">agent.ts</span> sets
+    <span class="mono">session.pendingHandoffData</span>, and TAC turns that into the
+    ConversationRelay <span class="mono">end</span> message that drives the Studio/Flex handoff.
+    A map for reading the code, not a slide for the panel.</figcaption>
   </figure>
 </section>
 
@@ -990,18 +1003,12 @@ sequenceDiagram
   IN-->>AG: { complete, missing }
   Note over AG: only proceeds once complete
   AG->>HO: buildHandoffData() on request_handoff
-  HO-->>AG: handoff payload (intake as task attributes)
-  AG->>AG: set session.pendingHandoffData = payload
-  Note over AG,CR: TAC watches that property; setting it makes CR emit the end message
-  AG-->>CR: end message (carries pendingHandoffData)
-  CR->>ST: POST to &lt;Connect action&gt; → Studio Flow → Flex task
+  AG->>CR: set session.pendingHandoffData
+  CR->>ST: end message → Studio Flow → Flex task
 </pre>
     </div>
     <figcaption>The server-side <span class="mono">checkComplete</span> is the gate: the agent
-    cannot reach <span class="mono">request_handoff</span> until the intake is complete. The handoff
-    itself is driven by setting <span class="mono">session.pendingHandoffData</span> - TAC turns
-    that into the ConversationRelay <span class="mono">end</span> message, so it's set a property,
-    not call a helper.</figcaption>
+    cannot reach <span class="mono">request_handoff</span> until the intake is complete.</figcaption>
   </figure>
 </section>
 

@@ -990,12 +990,18 @@ sequenceDiagram
   IN-->>AG: { complete, missing }
   Note over AG: only proceeds once complete
   AG->>HO: buildHandoffData() on request_handoff
-  AG->>CR: set session.pendingHandoffData
-  CR->>ST: end message → Studio Flow → Flex task
+  HO-->>AG: handoff payload (intake as task attributes)
+  AG->>AG: set session.pendingHandoffData = payload
+  Note over AG,CR: TAC watches that property; setting it makes CR emit the end message
+  AG-->>CR: end message (carries pendingHandoffData)
+  CR->>ST: POST to &lt;Connect action&gt; → Studio Flow → Flex task
 </pre>
     </div>
     <figcaption>The server-side <span class="mono">checkComplete</span> is the gate: the agent
-    cannot reach <span class="mono">request_handoff</span> until the intake is complete.</figcaption>
+    cannot reach <span class="mono">request_handoff</span> until the intake is complete. The handoff
+    itself is driven by setting <span class="mono">session.pendingHandoffData</span> - TAC turns
+    that into the ConversationRelay <span class="mono">end</span> message, so it's set a property,
+    not call a helper.</figcaption>
   </figure>
 </section>
 

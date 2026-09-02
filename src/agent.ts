@@ -488,14 +488,28 @@ async function dispatchTool(
         }
         const result = await deflectToVideoRoom(conversationId, state.intake.email);
         if (result.ok) {
-          // Video tier: caller joins by link, so no live transfer to Flex.
+          // Video tier: caller joins by link, so no live transfer to Flex - but the
+          // call still has to end. Persist + remember, then set the SAME end-call
+          // mechanism decline_request uses, with a 'video_sent' disposition, so the
+          // Studio Flow hangs up instead of leaving ConversationRelay open with
+          // nobody left to talk to. Without this the call just sits open indefinitely.
           await finalizeComplete(state, deps, false); // persist + remember, tier recorded
+          if (deps.session) {
+            deps.session.pendingHandoffData = {
+              type: 'end',
+              handoffData: buildTerminateData(conversationId, 'video_sent', 'video link emailed', state.intake),
+            };
+            log.info({ conversationId }, 'video: end payload set (Studio Flow will hang up)');
+          }
           log.info({ conversationId, tool: 'choose_service_tier', tier, videoOk: true }, 'tool call');
           return JSON.stringify({
             ok: true,
             tier,
             action: 'video_link_sent',
-            message: 'Video session created and join link emailed to the caller.',
+            message:
+              'Video session created and join link emailed to the caller. Say a brief closing ' +
+              'line letting them know to check their email, then say goodbye - the call will ' +
+              'end automatically after you speak.',
           });
         }
         // Video setup failed - fall back to a live human transfer rather than dead-end.
@@ -588,7 +602,7 @@ async function dispatchTool(
       if (deps.session) {
         deps.session.pendingHandoffData = {
           type: 'end',
-          handoffData: buildTerminateData(conversationId, reason, state.intake),
+          handoffData: buildTerminateData(conversationId, 'declined', reason, state.intake),
         };
         log.info({ conversationId }, 'decline: end payload set (Studio Flow will hang up)');
       }

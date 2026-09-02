@@ -78,32 +78,38 @@ export function buildHandoffData(conversationId: string, record: IntakeRecord): 
   return JSON.stringify({ attributes: buildTaskAttributes(conversationId, record) });
 }
 
+/** A disposition that ends the call without sending it to Flex. */
+export type TerminateDisposition = 'declined' | 'video_sent';
+
 /**
- * Payload for ending a call that is NOT being transferred to a human - a declined
- * (spam / wrong-number / not-a-lead) caller. Sent via the same ConversationRelay
- * `end` mechanism as a handoff, so control returns to the `<Connect action>`
- * Studio Flow, but marked so the Flow branches to a hang-up instead of
- * Send-to-Flex.
+ * Payload for ending a call that is NOT being transferred to a human - either a
+ * declined (spam / wrong-number / not-a-lead) caller, or a caller who picked the
+ * video tier and already has their join link (nothing left for a human to pick
+ * up). Sent via the same ConversationRelay `end` mechanism as a handoff, so
+ * control returns to the `<Connect action>` Studio Flow, but marked so the Flow
+ * branches to a hang-up instead of Send-to-Flex.
  *
- * STUDIO FLOW CONTRACT: branch on `attributes.disposition`. When it equals
- * `"declined"`, run a Hangup (optionally a brief Say first). Otherwise treat it
- * as a normal interpreter handoff (Send-to-Flex). The field lives under
- * `attributes` to match how the Studio template parses `handoffData`.
+ * STUDIO FLOW CONTRACT: branch on `attributes.disposition`. When it is
+ * `"declined"` or `"video_sent"`, run a Hangup (optionally a brief Say first).
+ * Otherwise (unset) treat it as a normal interpreter handoff (Send-to-Flex). The
+ * field lives under `attributes` to match how the Studio template parses
+ * `handoffData`.
  */
 export function buildTerminateData(
   conversationId: string,
+  disposition: TerminateDisposition,
   reason: string,
   record: IntakeRecord = {},
 ): string {
   // Carry the SAME attribute shape as a real handoff (via buildTaskAttributes)
   // so any Studio parse/Set-Variables step that reads handoff fields
   // (interpreterRequest, languagePair, conversations.*) finds them and does not
-  // throw on a decline - then layer the decline markers on top. The Flow still
-  // branches on `disposition` to hang up instead of Send-to-Flex.
+  // throw on a non-Flex disposition - then layer the terminate markers on top.
+  // The Flow still branches on `disposition` to hang up instead of Send-to-Flex.
   return JSON.stringify({
     attributes: {
       ...buildTaskAttributes(conversationId, record),
-      disposition: 'declined',
+      disposition,
       declineReason: reason,
     },
   });

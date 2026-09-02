@@ -262,21 +262,36 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
     // model on its very next hop, not just the next turn.
     const system =
       baseSystemPrompt() + memoryPreamble(state.memory) + languagePreamble(state.activeLanguage);
+    const request = {
+      model: MODEL,
+      max_tokens: 1024,
+      system,
+      tools: TOOLS,
+      messages: state.history,
+    };
     let res: Anthropic.Message;
     try {
-      res = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        system,
-        tools: TOOLS,
-        messages: state.history,
-      });
+      res = await anthropic.messages.create(request);
     } catch (err) {
-      // The model is unreachable (out of credits, outage, timeout). Never leave
-      // the caller in dead air: apologise in their language and route the live
-      // call into the human queue via the same Studio→Flex handoff path.
-      log.error({ conversationId: convId, err }, 'model call failed - routing caller to queue');
-      return failToQueue(state, deps);
+      if (isContentFilterError(err)) {
+        // Anthropic's own output moderation occasionally flags a completely
+        // benign turn (seen live: reading an email address back letter by
+        // letter). It's opaque and non-deterministic - retrying the identical
+        // request once is worth it before giving up the call to a human.
+        log.warn({ conversationId: convId, err }, 'content filter false-positive, retrying once');
+        try {
+          res = await anthropic.messages.create(request);
+        } catch (retryErr) {
+          log.error({ conversationId: convId, err: retryErr }, 'model call failed on retry - routing caller to queue');
+          return failToQueue(state, deps);
+        }
+      } else {
+        // The model is unreachable (out of credits, outage, timeout). Never leave
+        // the caller in dead air: apologise in their language and route the live
+        // call into the human queue via the same Studio→Flex handoff path.
+        log.error({ conversationId: convId, err }, 'model call failed - routing caller to queue');
+        return failToQueue(state, deps);
+      }
     }
 
     state.history.push({ role: 'assistant', content: res.content });
@@ -311,6 +326,17 @@ export async function runAgent(userMessage: string, deps: Deps): Promise<string>
   // don't hand the channel an empty string - on a live call that reads as
   // dead air.
   return spoken.join(' ') || 'Got it, thank you.';
+}
+
+/**
+ * True for Anthropic's own output-moderation block (400, invalid_request_error,
+ * "Output blocked by content filtering policy") - as opposed to a real outage,
+ * auth failure, or malformed-request bug, which should NOT be retried.
+ */
+function isContentFilterError(err: unknown): boolean {
+  if (!(err instanceof Anthropic.APIError) || err.status !== 400) return false;
+  const inner = (err as { error?: { error?: { type?: string; message?: string } } }).error?.error;
+  return inner?.type === 'invalid_request_error' && /content filtering/i.test(inner?.message ?? '');
 }
 
 /** Apology spoken when the model is unreachable, in the caller's active language. */

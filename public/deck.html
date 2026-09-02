@@ -312,10 +312,6 @@
     padding: .18rem .55rem; border-radius: 3px;
     background: var(--wash); color: var(--red); border: 1px solid var(--rule-soft);
   }
-  /* .hot is the emphasised card - a signal left-accent + accent tag, no fill */
-  .card.hot { border-left: 3px solid var(--red); }
-  .card.hot .tag { background: var(--red); color: var(--red-ink); border-color: var(--red); }
-
 
   .steps { counter-reset: s; list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 1.1rem; max-width: 62ch; }
   .steps li { counter-increment: s; display: flex; gap: 1rem; align-items: flex-start; }
@@ -637,8 +633,8 @@
       <p>Live transfer on this call, straight into Flex. Best for sensitive or complex
       matters.</p>
     </div>
-    <div class="card hot">
-      <h3>Video room <span class="tag">webrtc</span></h3>
+    <div class="card">
+      <h3>Video room <span class="tag">still premium without PSTN costs</span></h3>
       <p>A real Twilio Video room per request, join link emailed. Screenshare a form or
       letter, and <strong>there's no PSTN per-minute cost</strong>.</p>
     </div>

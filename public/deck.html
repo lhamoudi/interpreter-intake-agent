@@ -387,6 +387,56 @@
   .navhint { position: fixed; right: 1.2rem; bottom: 1rem; font-size: .75rem; color: var(--muted); }
   @media (max-width: 640px) { .navhint { display: none; } }
 
+  /* appendix slides: mark the eyebrow number in the accent */
+  .slide[data-part="appendix"] .eyebrow .n { color: var(--red); }
+
+  /* slide index overlay (press G) */
+  .idx {
+    position: fixed; inset: 0; z-index: 2147483100; display: none; overflow-y: auto;
+    background: var(--ground);
+    padding: clamp(1.5rem, 5vh, 3.2rem) clamp(1.25rem, 5vw, 3.75rem) 5rem;
+  }
+  body.idx-on .idx { display: block; }
+  .idx h4 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: .72rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .8rem;
+  }
+  .idx h4 + .idx-grid { margin-bottom: 1.9rem; }
+  .idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: .55rem; margin: 0 0 1.9rem; }
+  .idx-grid button {
+    display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; text-align: left;
+    padding: .7rem .8rem; background: var(--paper); border: 1px solid var(--line); border-radius: 3px;
+    cursor: pointer; font-family: "Archivo", system-ui, sans-serif;
+  }
+  .idx-grid button:hover { border-color: var(--red); }
+  .idx-grid button.here { border-color: var(--red); background: var(--wash); }
+  .idx-eyebrow { display: flex; align-items: center; gap: .5rem; }
+  .idx-grid .n { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .625rem; font-weight: 700; color: var(--red); letter-spacing: .04em; }
+  .idx-grid .sec {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: .6rem; font-weight: 600; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .idx-grid .t { font-size: .82rem; font-weight: 600; color: var(--ink); line-height: 1.25; }
+  .idx-close {
+    position: fixed; top: 1.1rem; right: 1.2rem;
+    font-family: "Archivo", system-ui, sans-serif; font-size: .78rem; font-weight: 600;
+    color: var(--muted); background: var(--surface); border: 1px solid var(--line);
+    border-radius: 999px; padding: .35rem .9rem; cursor: pointer;
+  }
+  .idx-close:hover { color: var(--red); border-color: var(--red); }
+
+  /* index button, sits by the theme toggle */
+  .idx-open {
+    position: fixed; left: 1.2rem; bottom: 4rem; z-index: 2147483000;
+    font-family: "Archivo", system-ui, sans-serif; font-size: .78rem; font-weight: 600;
+    color: var(--muted); background: var(--surface); border: 1px solid var(--line);
+    border-radius: 999px; padding: .45rem 1rem; cursor: pointer;
+  }
+  .idx-open:hover { color: var(--red); border-color: var(--red); }
+  .idx-open:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
   /* theme toggle */
   .theme-toggle {
     position: fixed;
@@ -437,7 +487,7 @@
 
 <!-- 01 · Title -->
 <section class="slide slide-title">
-  <div class="eyebrow"><span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span> Twilio FDE take-home · demo companion</div>
+  <div class="eyebrow"><span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="n" hidden>01</span> Twilio FDE take-home · demo companion</div>
   <h1>Interpreter Intake Agent</h1>
   <p class="lead">A conversational voice agent that gathers a caller's interpretation needs
   - in their own language - and connects them live to a skilled interpreter.</p>
@@ -525,23 +575,9 @@
   </div>
 </section>
 
-<!-- 02 · Demo agenda -->
+<!-- 02 · Thesis -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">02</span> Demo agenda</div>
-  <h2>What we'll showcase</h2>
-  <ol class="steps">
-    <li><span><strong>Multi-intent intake</strong> - expert caller, everything captured in a single utterance, shortcuts the menu entirely.</span></li>
-    <li><span><strong>Completeness check</strong> - Claude fills in the details, but server code decides when the intake is actually done.</span></li>
-    <li><span><strong>Tiered options + live Flex handoff</strong> - pick a tier, watch the task land in Flex.</span></li>
-    <li><span><strong>Second call, remembered</strong> - cross-call memory used to greet a returning caller by saved preferences.</span></li>
-    <li><span><strong>Multilingual, mid-call</strong> - switch language by simply asking, same voice adopts the new language, continues without missing a beat.</span></li>
-    <li><span><strong>Graceful decline</strong> - a clear non-customer caller gets a clean hangup, with disposition logged.</span></li>
-  </ol>
-</section>
-
-<!-- 03 · Thesis -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">03</span> The use case</div>
+  <div class="eyebrow"><span class="n">02</span> The use case</div>
   <h2>Conversational intake in front of the routing</h2>
   <p>I was previously embedded with a large interpretation provider's dev team, building
   their IVR intake and the overflow routing behind it. The intake in front of that routing
@@ -553,6 +589,20 @@
   time-sensitive intake - a medical emergency, a legal urgency, a police encounter.
   The handoff to a human is the actual goal, so the intake needs to gather everything
   before that happens.</p>
+</section>
+
+<!-- 03 · Demo agenda -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">03</span> Demo agenda</div>
+  <h2>What we'll showcase</h2>
+  <ol class="steps">
+    <li><span><strong>Multi-intent intake</strong> - expert caller, everything captured in a single utterance, shortcuts the menu entirely.</span></li>
+    <li><span><strong>Completeness check</strong> - Claude fills in the details, but server code decides when the intake is actually done.</span></li>
+    <li><span><strong>Tiered options + live Flex handoff</strong> - pick a tier, watch the task land in Flex.</span></li>
+    <li><span><strong>Second call, remembered</strong> - cross-call memory used to greet a returning caller by saved preferences.</span></li>
+    <li><span><strong>Multilingual, mid-call</strong> - switch language by simply asking, same voice adopts the new language, continues without missing a beat.</span></li>
+    <li><span><strong>Graceful decline</strong> - a clear non-customer caller gets a clean hangup, with disposition logged.</span></li>
+  </ol>
 </section>
 
 <!-- 04 · Architecture -->
@@ -862,9 +912,9 @@
   </ul>
 </section>
 
-<!-- 11 · Code map -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">11</span> Code map</div>
+<!-- A1 · Code map (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A1</span> Appendix - code map</div>
   <h2>How the source files fit together</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -979,9 +1029,9 @@
   </figure>
 </section>
 
-<!-- 12 · Sequence: happy path -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">12</span> Execution flow</div>
+<!-- A2 · Sequence: happy path (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A2</span> Appendix - execution flow</div>
   <h2>Happy path: intake to a live handoff</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1011,9 +1061,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- 13 · Sequence: language switch -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">13</span> Execution flow</div>
+<!-- A3 · Sequence: language switch (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A3</span> Appendix - execution flow</div>
   <h2>Mid-call language switch</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1039,9 +1089,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- 14 · Sequence: video deflection -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">14</span> Execution flow</div>
+<!-- A4 · Sequence: video deflection (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A4</span> Appendix - execution flow</div>
   <h2>Video-tier deflection, with fallback</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1071,9 +1121,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- 15 · Sequence: returning caller -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">15</span> Execution flow</div>
+<!-- A5 · Sequence: returning caller (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A5</span> Appendix - execution flow</div>
   <h2>Returning caller, remembered</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1098,7 +1148,17 @@ sequenceDiagram
   </figure>
 </section>
 
-<div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>
+<button class="idx-open" id="idx-open" type="button" title="Slide index (G)">☰ Index · G</button>
+
+<div class="idx" id="idx" role="dialog" aria-label="Slide index" aria-modal="true">
+  <button class="idx-close" id="idx-close" type="button" title="Close (Esc)">Close · Esc</button>
+  <h4>Main line</h4>
+  <div class="idx-grid" id="idx-main"></div>
+  <h4>Appendix - pull these up if asked</h4>
+  <div class="idx-grid" id="idx-app"></div>
+</div>
+
+<div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd> · index <kbd>G</kbd></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"></script>
 <script>
@@ -1155,11 +1215,68 @@ sequenceDiagram
   const slides = [...document.querySelectorAll(".slide")];
   addEventListener("keydown", (e) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "PageDown" && e.key !== "PageUp") return;
+    if (document.body.classList.contains("idx-on")) return; // let the index own the keys while open
     const y = scrollY + innerHeight / 2;
     let i = slides.findIndex(s => s.offsetTop <= y && y < s.offsetTop + s.offsetHeight);
     if (i < 0) i = 0;
     const next = (e.key === "ArrowDown" || e.key === "PageDown") ? Math.min(i + 1, slides.length - 1) : Math.max(i - 1, 0);
     if (next !== i) { e.preventDefault(); slides[next].scrollIntoView({ behavior: "smooth" }); }
+  });
+
+  // ---- slide index overlay (press G) ----
+  const idx = document.getElementById("idx");
+  const idxMain = document.getElementById("idx-main");
+  const idxApp = document.getElementById("idx-app");
+
+  const esc = (str) => str.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+  slides.forEach((s, i) => {
+    const eyebrow = s.querySelector(".eyebrow");
+    const numEl = eyebrow ? eyebrow.querySelector(".n") : null;
+    const num = numEl ? numEl.textContent.trim() : String(i + 1).padStart(2, "0");
+    // Section label = the eyebrow's own text, minus the number and the bars motif.
+    let section = "";
+    if (eyebrow) {
+      const clone = eyebrow.cloneNode(true);
+      clone.querySelectorAll(".n, .bars").forEach(el => el.remove());
+      section = clone.textContent.replace(/\s+/g, " ").trim();
+    }
+    const h = s.querySelector("h1, h2");
+    const title = h ? h.textContent.replace(/\s+/g, " ").trim() : "";
+
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.go = String(i);
+    b.innerHTML =
+      '<span class="idx-eyebrow"><span class="n">' + esc(num) + '</span>' +
+      (section ? '<span class="sec">' + esc(section) + '</span>' : '') + '</span>' +
+      (title ? '<span class="t">' + esc(title) + '</span>' : '');
+    b.addEventListener("click", () => {
+      closeIdx();
+      slides[i].scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    (s.dataset.part === "appendix" ? idxApp : idxMain).appendChild(b);
+  });
+
+  const idxButtons = [...idx.querySelectorAll("button[data-go]")];
+  function markCurrent(i) {
+    idxButtons.forEach(b => b.classList.toggle("here", +b.dataset.go === i));
+  }
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) markCurrent(slides.indexOf(e.target)); });
+    }, { threshold: 0.5 });
+    slides.forEach(s => io.observe(s));
+  }
+
+  function openIdx() { document.body.classList.add("idx-on"); }
+  function closeIdx() { document.body.classList.remove("idx-on"); }
+  function toggleIdx() { document.body.classList.contains("idx-on") ? closeIdx() : openIdx(); }
+  document.getElementById("idx-open").addEventListener("click", toggleIdx);
+  document.getElementById("idx-close").addEventListener("click", closeIdx);
+  addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "g" || e.key === "G") { e.preventDefault(); toggleIdx(); }
+    else if (e.key === "Escape" && document.body.classList.contains("idx-on")) { e.preventDefault(); closeIdx(); }
   });
 
   // Theme toggle: explicit choice persisted per-viewer; default tracks the OS.

@@ -49,32 +49,26 @@ in dead air - the agent apologises in their language and routes them into the hu
 
 ## Architecture
 
-```
-   Caller (PSTN)
-        │  call
-        ▼
-   Twilio number ──POST /twiml──► Fly.io container (stock Fastify TACServer)
-        │                              │
-        │  <Connect><ConversationRelay wss://…/ws>
-        ▼                              │
-   ConversationRelay ◄──WebSocket────► /ws   (STT ⇄ TTS, held for the whole call)
-                                       │  onMessageReady(text)
-                                       ▼
-                                  src/agent.ts  ── Claude tool loop (Haiku 4.5)
-                                       │            record_intake · choose_service_tier
-                                       │            request_handoff · decline_request
-                    ┌──────────────────┼───────────────────────┐
-                    ▼                  ▼                        ▼
-             Anthropic API        Turso (libSQL)         Handoff / deflection
-             (the agent)          requests · callers     ├─ human: pendingHandoffData
-                                  (memory by hashed #)    │   → Studio Flow → Flex task
-                                                          └─ video: Twilio Video Room
-                                                              + SendGrid email (link)
+```mermaid
+flowchart TD
+  CALLER["Caller (PSTN)<br/>+1 833 918 3352"]
+  PV["Programmable Voice<br/>inbound number"]
+  CR["ConversationRelay<br/>STT and TTS, WebSocket held for the whole call"]
+  AG["Stock TACServer on Fly.io<br/>Claude tool loop, src/agent.ts"]
+  AN["Anthropic<br/>the agent's reasoning"]
+  TU["Turso<br/>requests and caller memory (hashed number)"]
+  HO["Handoff<br/>Studio to Flex, plus Video and email"]
 
-   Front door: the Cloudflare-managed domain intake.kingofthevegetables.com
-               (DNS-only) fronts the Fly app; TLS by Fly.
-   Also served: GET /requests and GET /health, and GET /deck (the demo companion deck).
+  CALLER -->|"POST /twiml → Connect + ConversationRelay"| PV
+  PV --> CR
+  CR -->|"transcribed turns → onMessageReady"| AG
+  AG -->|reasoning| AN
+  AG -->|persistence| TU
+  AG -->|"live transfer"| HO
 ```
+
+Fronted by a Cloudflare-managed domain (DNS-only) at `intake.kingofthevegetables.com`; TLS by
+Fly. Also served: `GET /requests`, `GET /health`, and `GET /deck` (the demo companion deck).
 
 **Where state lives**
 - **In-flight call state** lives in the `TACServer` process, keyed by `conversationId`.
@@ -85,6 +79,134 @@ in dead air - the agent apologises in their language and routes them into the hu
   declined call is persisted as `declined` for audit purposes.
 - If the model call fails mid-call, the caller is routed into the human queue (via the same
   Studio → Flex handoff) with a spoken apology. No dead air!
+
+---
+
+## How it works
+
+### The code map
+
+How the `src/` files call each other at runtime. `agent.ts` is the hub; `intake.ts` holds the
+record and the completeness check; the handoff leaves the code when `agent.ts` sets
+`session.pendingHandoffData`, which TAC turns into the ConversationRelay `end` message.
+
+```mermaid
+flowchart LR
+  IX["index.ts<br/>entry, wires TAC + routes"]
+  AG["agent.ts<br/>the Claude tool loop, the hub"]
+  TO["tools.ts<br/>the tool schemas Claude calls"]
+  LA["language.ts<br/>the mid-call language switch"]
+  DF["deflection.ts<br/>video room + emailed link"]
+  HO["handoff.ts<br/>the Flex handoff payload"]
+  ME["memory.ts<br/>Turso: requests + caller memory"]
+  IN["intake.ts<br/>IntakeRecord + completeness check"]
+  TAC["TAC session / ConversationRelay<br/>(platform) emits end → Studio → Flex"]
+
+  IX -->|"runAgent, initCall, endCall"| AG
+  IX -->|twimlPresetFor| LA
+  IX -->|lookupCallerByAddress| ME
+  AG -->|TOOLS| TO
+  AG -->|switchLanguage| LA
+  AG -->|deflectToVideoRoom| DF
+  AG -->|buildHandoffData| HO
+  AG -->|"getCallerMemory, saveRequest"| ME
+  AG -->|"checkComplete, mergeIntake"| IN
+  AG -->|"sets session.pendingHandoffData"| TAC
+```
+
+### Happy path: intake to a live handoff
+
+The server-side `checkComplete` is the gate - the agent cannot reach `request_handoff` until
+the intake is complete.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant CR as ConversationRelay
+  participant IX as index.ts
+  participant AG as agent.ts
+  participant IN as intake.ts
+  participant HO as handoff.ts
+  participant ST as Studio / Flex
+  CR->>IX: transcribed turn (onMessageReady)
+  IX->>AG: runAgent(text)
+  AG->>AG: Claude tool loop (up to 6 hops)
+  AG->>IN: mergeIntake(patch) on record_intake
+  AG->>IN: checkComplete(record)
+  IN-->>AG: complete or missing
+  Note over AG: only proceeds once complete
+  AG->>HO: buildHandoffData() on request_handoff
+  AG->>CR: set session.pendingHandoffData
+  CR->>ST: end message, Studio Flow, Flex task
+```
+
+### Mid-call language switch
+
+The switch takes effect on the very next hop, not the next turn, because the tool result steers
+the model to change language immediately.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant CA as Caller
+  participant AG as agent.ts
+  participant LA as language.ts
+  participant CR as ConversationRelay
+  CA->>AG: "can we continue in Spanish?"
+  AG->>AG: Claude calls set_caller_language(Spanish)
+  AG->>LA: switchLanguage(voice, id, "Spanish")
+  LA->>CR: ws.send(type language, ttsLanguage, transcriptionLanguage)
+  AG->>AG: set activeLanguage + targetLanguage
+  AG-->>AG: tool_result: reply in Spanish now (same-turn steer)
+  AG->>CA: next hop replies in Spanish, same voice
+  Note over AG,LA: no-op if the language is unchanged (no message sent)
+```
+
+### Video-tier deflection, with fallback
+
+The caller never dead-ends: any failure on the video path falls back to a live human transfer.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant AG as agent.ts
+  participant DF as deflection.ts
+  participant TW as Twilio Video
+  participant SG as SendGrid
+  AG->>AG: Claude calls choose_service_tier(video, email)
+  AG->>AG: checkComplete, must pass first
+  AG->>DF: deflectToVideoRoom(id, email)
+  DF->>TW: create Video room
+  DF->>SG: email the join link
+  alt room + email OK
+    DF-->>AG: ok, link sent
+    AG->>AG: finalizeComplete (persist, no live transfer)
+  else any failure
+    DF-->>AG: not ok
+    AG->>AG: serviceTier = human, request_handoff
+  end
+```
+
+### Returning caller, remembered
+
+Cross-call memory is keyed by a salted hash of the caller number, so a returning caller is
+greeted in their language and their known preferences pre-fill the intake.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant CA as Caller (PSTN)
+  participant IX as index.ts
+  participant ME as memory.ts
+  participant AG as agent.ts
+  CA->>IX: inbound call (onInboundCallTwiml)
+  IX->>ME: lookupCallerByAddress(from), salted hash
+  ME-->>IX: caller memory (if callCount > 0)
+  IX->>CA: greet in last-used language, preset STT/TTS voice
+  Note over IX,AG: first turn arrives
+  IX->>AG: runAgent(text), initCall seeds intake from memory
+  AG->>CA: skips questions it already knows the answer to
+```
 
 ---
 

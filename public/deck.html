@@ -6,7 +6,7 @@
 <title>Interpreter Intake Agent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Karla:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
   /*
     Restrained slate-and-serif palette. A muted signal orange-red is the single
@@ -98,9 +98,9 @@
     margin: 0;
     background: var(--ground);
     color: var(--ink);
-    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-    font-size: 17px;
-    line-height: 1.55;
+    font-family: "Karla", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
   .slide {
@@ -514,15 +514,14 @@
 <!-- 02 · Demo agenda -->
 <section class="slide">
   <div class="eyebrow"><span class="n">02</span> Demo agenda</div>
-  <h2>What I'll show, in order</h2>
-  <p class="lead">Six beats, live on the number above - then open Q&amp;A on anything in the repo.</p>
+  <h2>What we'll showcase</h2>
   <ol class="steps">
     <li><span><strong>Multi-intent intake</strong> - one call, every slot captured in a single breath, no menu.</span></li>
-    <li><span><strong>Completeness check</strong> - Claude fills in the details, but my server code decides when the intake is actually done.</span></li>
-    <li><span><strong>Tiered options + live Flex handoff</strong> - pick a tier, watch the task land in Flex with the caller still on the line.</span></li>
-    <li><span><strong>Multilingual, mid-call</strong> - switch language on request, same voice, no reset.</span></li>
-    <li><span><strong>Graceful decline</strong> - a non-lead gets a clean hangup, still logged.</span></li>
-    <li><span><strong>Second call, remembered</strong> - cross-call memory greets a returning caller by preference.</span></li>
+    <li><span><strong>Completeness check</strong> - Claude fills in the details, but server code decides when the intake is actually done.</span></li>
+    <li><span><strong>Tiered options + live Flex handoff</strong> - pick a tier, watch the task land in Flex.</span></li>
+    <li><span><strong>Multilingual, mid-call</strong> - switch language by asking, same voice adopts the new language, continues without a reset.</span></li>
+    <li><span><strong>Graceful decline</strong> - a non customer caller gets a clean hangup, with disposition logged.</span></li>
+    <li><span><strong>Second call, remembered</strong> - cross-call memory used to greet a returning caller by saved preferences.</span></li>
   </ol>
 </section>
 
@@ -538,7 +537,7 @@
   and I need them immediately."</div>
   <p>Captured, confirmed, and routed in <em>one turn</em>. That speed matters for
   time-sensitive intake - a medical emergency, a legal urgency, a police encounter.
-  The handoff to a human is the actual goal/product, so the intake needs to gather everything
+  The handoff to a human is the actual goal, so the intake needs to gather everything
   before that happens.</p>
 </section>
 
@@ -628,9 +627,9 @@
   <h2>The hard parts</h2>
   <div class="cols cols-3">
     <div class="card">
-      <h3>A2P 10DLC <span class="tag">error 30034</span></h3>
-      <p>SMS needed 10DLC/toll-free verification - blocking my attempts at the cross-channel 
-        bonus (Conversation Orchestrator resuming via SMS). The video link moved to email too</p>
+      <h3>SMS verification</h3>
+      <p>SMS needed 10DLC/toll-free verification, which blocked the cross-channel
+        bonus (Conversation Orchestrator resuming over SMS). The video link moved to email instead.</p>
     </div>
     <div class="card">
       <h3>Mid-call language switch</h3>

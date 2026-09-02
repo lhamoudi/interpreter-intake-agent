@@ -155,3 +155,11 @@ export async function listRequests(limit = 50): Promise<Record<string, unknown>[
   });
   return res.rows as unknown as Record<string, unknown>[];
 }
+
+export async function listCallers(limit = 50): Promise<Record<string, unknown>[]> {
+  const res = await db().execute({
+    sql: 'SELECT caller_hash, source_language, target_language, gender_preference, industry, email, caller_language, call_count, last_seen_at FROM callers ORDER BY last_seen_at DESC LIMIT ?',
+    args: [limit],
+  });
+  return res.rows as unknown as Record<string, unknown>[];
+}

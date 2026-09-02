@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { TAC, TACConfig, VoiceChannel, TACServer, createLogger } from 'twilio-agent-connect';
 import { initCall, runAgent, endCall } from './agent.js';
-import { listRequests, lookupCallerByAddress } from './memory.js';
+import { listRequests, listCallers, lookupCallerByAddress } from './memory.js';
 import {
   returningGreeting,
   twimlPresetFor,
@@ -104,6 +104,7 @@ async function main() {
   // Read-back for a coordinator/reviewer - not part of TAC's own routes.
   server.fastify.get('/health', async () => ({ status: 'ok' }));
   server.fastify.get('/requests', async () => ({ requests: await listRequests() }));
+  server.fastify.get('/callers', async () => ({ callers: await listCallers() }));
 
   // Static demo-companion deck - one file, read once at startup, served as-is.
   const deckHtml = await readFile(DECK_PATH, 'utf8');

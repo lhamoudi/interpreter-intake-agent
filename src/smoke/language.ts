@@ -42,7 +42,8 @@ const fakeVoice = { getWebsocket: () => fakeWs } as unknown as VoiceChannel;
 // A caller who starts in English, ASKS to continue in Spanish (the reliable
 // trigger - a request phrased in English transcribes fine), then switches back.
 // Exercises the switch mechanism, the target-language default, the switch-back,
-// and the anti-thrash guard. NOTE: in production the switch is driven by the
+// and the no-op guard (no message sent when the language is unchanged). NOTE: in
+// production the switch is driven by the
 // caller asking; cold turn-1 detection from a mistranscribed foreign utterance is
 // deliberately NOT relied on (English STT can't transcribe it well enough).
 const turns = [
@@ -59,8 +60,8 @@ async function main() {
   // A FRESH caller number each run so this always exercises the new-caller path
   // (call opens in English, caller asks to switch). A fixed number can resolve to
   // a returning caller already preset to Spanish from a prior run's persisted
-  // memory, in which case the anti-thrash guard correctly suppresses the first
-  // switch message and the assertion below would misread that as a miss.
+  // memory, in which case the no-op guard correctly suppresses the first switch
+  // message and the assertion below would misread that as a miss.
   const caller = `+1555${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
   await initCall(conversationId as unknown as string, caller);
 
@@ -83,13 +84,13 @@ async function main() {
   const sawEnglish = ttsLangs.includes('en-US');
   // Three genuine changes max (es → en → es); the guard prevents duplicates, so a
   // clean run sends exactly 3. Allow ≤3 in case the model set Spanish only once
-  // up front, but flag if it exceeds 3 (thrash) or missed a switch.
-  const noThrash = msgs.length <= 3;
+  // up front, but flag if it exceeds 3 (redundant messages) or missed a switch.
+  const noRedundant = msgs.length <= 3;
 
-  const pass = sawSpanish && sawEnglish && noThrash;
+  const pass = sawSpanish && sawEnglish && noRedundant;
   console.log(
     pass
-      ? `\nPASS - detected + switched across languages (${msgs.length} switch messages, no thrash).`
+      ? `\nPASS - detected + switched across languages (${msgs.length} switch messages, no redundant sends).`
       : `\nFAIL - sawSpanish=${sawSpanish} sawEnglish=${sawEnglish} count=${msgs.length} (expected ≤3).`,
   );
   if (!pass) process.exit(1);

@@ -1019,7 +1019,7 @@ sequenceDiagram
   AG->>AG: set activeLanguage + targetLanguage
   AG-->>AG: tool_result: reply in Spanish now (same-turn steer)
   AG->>CA: next hop replies in Spanish, same voice
-  Note over AG,LA: anti-thrash: no message sent if language unchanged
+  Note over AG,LA: no-op if the language is unchanged (no message sent)
 </pre>
     </div>
     <figcaption>The switch takes effect on the very next hop, not the next turn, because the
@@ -1088,7 +1088,7 @@ sequenceDiagram
 
 <div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.1/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"></script>
 <script>
   // Mermaid sequence diagrams, themed from the deck's own CSS variables so they
   // track light/dark. Store each diagram's source so we can re-render on a theme

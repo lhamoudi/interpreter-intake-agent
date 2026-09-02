@@ -370,7 +370,9 @@ async function dispatchTool(
       state.intake.targetLanguage = canonical;
 
       if (!changed) {
-        // No-op: same language as we're already on. Send nothing (anti-thrash).
+        // No-op: same language as we're already on, so send nothing. Re-sending a
+        // ConversationRelay language message for the language already in use would
+        // reset the audio stream mid-call for no reason.
         log.info({ conversationId, tool: 'set_caller_language', language: canonical, changed: false }, 'tool call');
         return JSON.stringify({ ok: true, language: canonical, changed: false });
       }

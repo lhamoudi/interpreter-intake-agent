@@ -477,9 +477,13 @@ async function dispatchTool(
           tier: 'human',
           action: 'fallback_to_human',
           reason: result.reason,
+          // Briefly explain the tier change only. Do NOT also announce the
+          // transfer here - request_handoff's own tool result is the one place
+          // that tells the caller to stay on the line, so the two don't stack
+          // into two back-to-back "you'll be connected" lines.
           message:
-            'Could not set up the video session. Tell the caller you will connect them with a ' +
-            'human interpreter on this call instead, then call request_handoff.',
+            'Could not set up the video session, so switch to a human interpreter instead. ' +
+            'Briefly say that, then call request_handoff.',
         });
       }
 
@@ -492,9 +496,11 @@ async function dispatchTool(
           ok: true,
           tier: 'ai',
           action: 'fallback_to_human',
+          // Briefly explain the tier change only - see the video-fallback comment
+          // above for why the transfer itself isn't announced here too.
           message:
-            'AI live interpretation is not available yet on this line. Let the caller know you ' +
-            'will connect them with a human interpreter on this call, then call request_handoff.',
+            'AI live interpretation is not available yet on this line, so switch to a human ' +
+            'interpreter instead. Briefly say that, then call request_handoff.',
         });
       }
 

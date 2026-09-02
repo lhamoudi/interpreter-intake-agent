@@ -144,6 +144,11 @@
   }
   h1 { font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 800; letter-spacing: -.035em; }
   h2 { font-size: clamp(1.7rem, 3.6vw, 2.4rem); font-weight: 700; }
+  h4 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: .72rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .8rem;
+  }
   p, li { max-width: 65ch; }
   p.lead { font-size: 1.15rem; color: var(--ink-2); }
   strong { color: var(--ink); font-weight: 600; }
@@ -325,6 +330,32 @@
 
   .footnote { margin-top: 2rem; font-size: .85rem; color: var(--muted); max-width: 65ch; }
   .footnote code { font-size: .95em; }
+
+  /* codebase slide: repo link + file list */
+  .repo-link {
+    display: inline-flex; align-items: center; gap: .6rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 1.02rem; font-weight: 500;
+    color: var(--ink); text-decoration: none;
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: .55rem .9rem; background: var(--paper);
+  }
+  .repo-link:hover { border-color: var(--red); color: var(--red); }
+  .repo-link svg { width: 20px; height: 20px; flex: none; }
+  .card h3 a { color: var(--ink); text-decoration: none; }
+  .card h3 a:hover { color: var(--red); text-decoration: underline; }
+  .filelist {
+    margin: 0; padding: 0; list-style: none;
+    display: grid; gap: .55rem .2rem; grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) { .filelist { grid-template-columns: 1fr 1fr; column-gap: 2.4rem; } }
+  .filelist li { display: flex; gap: .7rem; align-items: baseline; font-size: .92rem; }
+  .filelist a {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .85rem;
+    color: var(--red); text-decoration: none; white-space: nowrap; flex: none;
+  }
+  .filelist a:hover { text-decoration: underline; }
+  .filelist span { color: var(--muted); }
 
   /* figure (architecture diagram) */
   .fig { margin: 1.6rem 0 0; display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
@@ -790,30 +821,36 @@
 <!-- 10 · Codebase -->
 <section class="slide">
   <div class="eyebrow"><span class="n">10</span> Codebase</div>
-  <h2>The repo, and where to read next</h2>
-  <p class="lead">Everything is in one repository, small enough to read end to end.
-  <span class="mono">github.com/lhamoudi/interpreter-intake-agent</span></p>
-  <div class="cols cols-3">
+  <h2>💻 The repo, and where to read next</h2>
+  <a class="repo-link" href="https://github.com/lhamoudi/interpreter-intake-agent" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+    github.com/lhamoudi/interpreter-intake-agent
+  </a>
+  <div class="cols cols-3" style="margin-top:1.8rem">
     <div class="card">
-      <h3>README.md</h3>
+      <h3><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/README.md" target="_blank" rel="noopener">README.md</a></h3>
       <p>What it does, the architecture, how to run it locally, and the environment it needs.</p>
     </div>
     <div class="card">
-      <h3>WRITEUP.md</h3>
+      <h3><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/WRITEUP.md" target="_blank" rel="noopener">WRITEUP.md</a></h3>
       <p>The design rationale: why this use case, the Twilio primitives used, the completeness
       check, the next-week roadmap, and what I'd change for production.</p>
     </div>
     <div class="card">
-      <h3>docs/overflow-network-integration.md</h3>
+      <h3><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/docs/overflow-network-integration.md" target="_blank" rel="noopener">docs/overflow-network-integration.md</a></h3>
       <p>The production overflow architecture from slide 09 - how this front door feeds
       in-house routing and the partner crowd.</p>
     </div>
   </div>
-  <p class="footnote">Core code lives under <span class="mono">src/</span>:
-  <span class="mono">agent.ts</span> (the Claude tool loop), <span class="mono">intake.ts</span>
-  (the completeness check), <span class="mono">language.ts</span> (the mid-call switch),
-  <span class="mono">handoff.ts</span> and <span class="mono">deflection.ts</span> (the tiers).
-  Happy to open any file.</p>
+  <h4 style="margin-top:2rem">Core code · <span class="mono" style="text-transform:none">src/</span></h4>
+  <ul class="filelist">
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/agent.ts" target="_blank" rel="noopener">agent.ts</a> <span>the Claude tool loop</span></li>
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/intake.ts" target="_blank" rel="noopener">intake.ts</a> <span>the completeness check</span></li>
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/language.ts" target="_blank" rel="noopener">language.ts</a> <span>the mid-call language switch</span></li>
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/tools.ts" target="_blank" rel="noopener">tools.ts</a> <span>the tool schemas</span></li>
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/handoff.ts" target="_blank" rel="noopener">handoff.ts</a> <span>the Flex handoff payload</span></li>
+    <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/deflection.ts" target="_blank" rel="noopener">deflection.ts</a> <span>the service tiers</span></li>
+  </ul>
 </section>
 
 <div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>

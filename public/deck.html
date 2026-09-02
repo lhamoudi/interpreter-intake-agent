@@ -1030,9 +1030,42 @@
   </figure>
 </section>
 
-<!-- A2 · Sequence: happy path (appendix) -->
+<!-- A2 · Sequence: startup (appendix) -->
 <section class="slide" data-part="appendix">
   <div class="eyebrow"><span class="n">A2</span> Appendix - execution flow</div>
+  <h2>Startup: main() runs once, then it's all callbacks</h2>
+  <figure class="fig">
+    <div class="figwrap">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant Fly as Fly machine boot
+  participant IX as index.ts main()
+  participant TAC as TAC / TACServer
+  participant VC as VoiceChannel
+  Fly->>IX: run main()
+  IX->>TAC: TAC.create(config)
+  IX->>VC: new VoiceChannel(defaultTwimlOptions)
+  IX->>VC: onInboundCallTwiml(callback)
+  IX->>TAC: onMessageReady(callback)
+  IX->>TAC: onConversationEnded(callback)
+  IX->>TAC: registerChannel(voiceChannel)
+  IX->>TAC: new TACServer(tac), server.start()
+  Note over IX: main() returns - callbacks are registered,<br/>nothing else runs until a call arrives
+  Note over TAC: idle, listening on /twiml and /ws
+</pre>
+    </div>
+    <figcaption>main() runs exactly once, at boot. It does not run per call - it registers the
+    three callbacks (<span class="mono">onInboundCallTwiml</span>,
+    <span class="mono">onMessageReady</span>, <span class="mono">onConversationEnded</span>) and
+    starts the server, then returns. Everything from the next slide on is TAC invoking one of
+    those callbacks when a real call reaches it.</figcaption>
+  </figure>
+</section>
+
+<!-- A3 · Sequence: happy path (appendix) -->
+<section class="slide" data-part="appendix">
+  <div class="eyebrow"><span class="n">A3</span> Appendix - execution flow</div>
   <h2>Happy path: intake to a live handoff</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1062,9 +1095,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- A3 · Sequence: language switch (appendix) -->
+<!-- A4 · Sequence: language switch (appendix) -->
 <section class="slide" data-part="appendix">
-  <div class="eyebrow"><span class="n">A3</span> Appendix - execution flow</div>
+  <div class="eyebrow"><span class="n">A4</span> Appendix - execution flow</div>
   <h2>Mid-call language switch</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1090,9 +1123,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- A4 · Sequence: video deflection (appendix) -->
+<!-- A5 · Sequence: video deflection (appendix) -->
 <section class="slide" data-part="appendix">
-  <div class="eyebrow"><span class="n">A4</span> Appendix - execution flow</div>
+  <div class="eyebrow"><span class="n">A5</span> Appendix - execution flow</div>
   <h2>Video-tier deflection, with fallback</h2>
   <figure class="fig">
     <div class="figwrap">
@@ -1122,9 +1155,9 @@ sequenceDiagram
   </figure>
 </section>
 
-<!-- A5 · Sequence: returning caller (appendix) -->
+<!-- A6 · Sequence: returning caller (appendix) -->
 <section class="slide" data-part="appendix">
-  <div class="eyebrow"><span class="n">A5</span> Appendix - execution flow</div>
+  <div class="eyebrow"><span class="n">A6</span> Appendix - execution flow</div>
   <h2>Returning caller, remembered</h2>
   <figure class="fig">
     <div class="figwrap">

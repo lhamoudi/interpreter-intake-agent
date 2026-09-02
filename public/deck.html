@@ -809,13 +809,13 @@
         <line x1="490" y1="510" x2="594" y2="510" stroke="currentColor" stroke-width="1.2" marker-end="url(#fs-a)"></line>
         <text x="542" y="502" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">config</text>
 
-        <rect x="890" y="396" width="244" height="128" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity=".55"></rect>
-        <text x="1012" y="388" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2" fill="var(--muted)">DOWNSTREAM PARTNERS</text>
+        <rect x="890" y="418" width="244" height="92" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity=".55"></rect>
+        <text x="1012" y="410" text-anchor="middle" font-family="Archivo,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2" fill="var(--muted)">DOWNSTREAM PARTNERS</text>
 
-        <rect x="900" y="412" width="224" height="40" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="1012" y="437" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="var(--ink)">Partner A - Twilio account</text>
-        <rect x="900" y="462" width="224" height="40" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="1012" y="487" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="var(--ink)">Partner B - own SIP switch</text>
+        <rect x="900" y="434" width="224" height="36" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
+        <text x="1012" y="456" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="var(--ink)">Partner A - Twilio account</text>
+        <rect x="900" y="474" width="224" height="36" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
+        <text x="1012" y="496" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="var(--ink)">Partner B - own SIP switch</text>
 
         <line x1="850" y1="452" x2="894" y2="452" stroke="currentColor" stroke-width="1.2" marker-end="url(#fs-a)"></line>
         <text x="872" y="444" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">HTTPS</text>
@@ -864,10 +864,7 @@
 <!-- 11 · Code map -->
 <section class="slide">
   <div class="eyebrow"><span class="n">11</span> Code map</div>
-  <h2>How the source files call each other</h2>
-  <p class="lead">Each arrow is an import, labelled with what it actually pulls in.
-  <span class="mono">agent.ts</span> is the hub; <span class="mono">intake.ts</span> (red) is the
-  shared record and completeness check.</p>
+  <h2>How the source files fit together</h2>
   <figure class="fig">
     <div class="figwrap">
       <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. Finally, agent.ts sets session.pendingHandoffData on the TAC session, which ConversationRelay turns into the end message that drives the Studio and Flex handoff. Arrows show runtime calls, not type imports.">

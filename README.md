@@ -82,13 +82,121 @@ Fly. Also served: `GET /requests`, `GET /health`, and `GET /deck` (the demo comp
 
 ---
 
+## Running it locally
+
+Prerequisites: Node 22+, a Twilio account with a number, an Anthropic API key, a Turso
+database, and (for the video "tier") a SendGrid sender to email from.
+
+```bash
+npm install
+cp .env.example .env      # fill in the values (see below)
+npx tsx src/smoke/apply-schema.ts   # create the Turso tables from schema.sql
+npm run dev               # starts the TACServer on :8000
+```
+
+The server needs to be publicly reachable for Twilio to call its webhook. For local dev,
+tunnel it (e.g. `ngrok http 8000`) and set `TWILIO_VOICE_PUBLIC_DOMAIN` to the tunnel host;
+in production it runs on Fly behind the Cloudflare domain (see Deploy).
+
+Point your Twilio number's Voice webhook at `https://<public-domain>/twiml` (POST), then
+call the number.
+
+**Try the logic without a phone** (these run the real agent against scripted turns):
+
+```bash
+npx tsx src/smoke/conversation.ts   # a normal intake (needs ANTHROPIC_API_KEY)
+npx tsx src/smoke/industry.ts       # subject-area capture from plain language
+npx tsx src/smoke/language.ts       # ask-to-switch EN→ES→EN, target-language follows
+npx tsx src/smoke/handoff.ts        # verifies the Flex handoff payload
+LIVE_VIDEO=1 TEST_EMAIL_TO=you@example.com npx tsx src/smoke/deflection.ts  # real video room + email
+```
+
+Unit tests and type-check:
+
+```bash
+npm run typecheck
+npm test
+```
+
+**Before a demo**, clear returning-caller memory so the demo number isn't recognised as a
+repeat caller from earlier test calls:
+
+```bash
+npm run reset-demo             # clears the callers (memory) table only
+npm run reset-demo -- --requests   # also clears the requests table, for a fully blank slate
+```
+
+---
+
+## Environment variables
+
+See `.env.example`. Never commit `.env`.
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Claude (the agent). Model: `claude-haiku-4-5`. |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | Twilio auth. |
+| `TWILIO_API_KEY` / `TWILIO_API_SECRET` | Twilio API key pair (TAC). |
+| `TWILIO_PHONE_NUMBER` | The number callers dial. |
+| `TWILIO_VOICE_PUBLIC_DOMAIN` | Public host the server is reachable at (ConversationRelay derives `wss://…` from it). |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Persistence (hosted libSQL / SQLite). |
+| `TWILIO_STUDIO_HANDOFF_FLOW_SID` | Studio Flow for the human → Flex handoff. Must match `FW[0-9a-f]{32}`; leave unset if absent (it's validated and the app refuses a placeholder). |
+| `SENDGRID_API_KEY` / `SENDGRID_FROM_EMAIL` | Emailing the video-session link. Sender must be verified. |
+| `VIDEO_JOIN_BASE_URL` | Base URL for the video join page (a join UI is not built - placeholder is fine). |
+| `CALLER_HASH_SALT` | Salt for hashing caller numbers before storing them as memory keys. |
+
+---
+
+## Deploy (Fly.io)
+
+The stock Fastify `TACServer` runs unmodified in a container.
+
+```bash
+fly launch          # first time: creates the app + fly.toml
+fly secrets import < .env       # push env as secrets (never printed)
+fly deploy
+fly scale count 1   # keep exactly ONE machine - see below
+```
+
+Fronted by a Cloudflare-managed domain: a **DNS-only** (grey-cloud) CNAME record points
+`intake.<domain>` at the Fly app, and `fly certs add intake.<domain>` issues TLS.
+
+> **One machine, intentionally.** In-flight call state lives in the process, so the app must
+> run a single always-on machine (`min_machines_running = 1`, `auto_stop_machines = false`
+> in `fly.toml`). Fly's HA default launches two on first deploy - so scaled back to one. The
+> horizontal-scale path is described in the write-up.
+
+---
+
+## Project layout
+
+```
+src/
+  index.ts        TACServer wiring: VoiceChannel, onMessageReady → agent, /health, /requests, /deck
+  agent.ts        the Claude tool loop, per-call state, memory seeding, edge cases
+  tools.ts        tool schemas (set_caller_language, record_intake, choose_service_tier, request_handoff, decline_request)
+  intake.ts       IntakeRecord + the deterministic server-side completeness check
+  language.ts     EN/ES/FR voice/locale config + the mid-call ConversationRelay language switch
+  deflection.ts   tiered service: Twilio Video Room + SendGrid email of the join link
+  handoff.ts      the Flex task-attributes payload for the human handoff
+  memory.ts       Turso reads/writes (requests + caller memory)
+  smoke/          runnable scripts that exercise the agent without a phone
+public/deck.html  the demo companion deck (served at /deck) on Fly
+schema.sql        Turso tables
+Dockerfile
+fly.toml
+```
+
+---
+
 ## How it works
 
 ### The code map
 
 How the `src/` files call each other at runtime. `agent.ts` is the hub; `intake.ts` holds the
 record and the completeness check; the handoff leaves the code when `agent.ts` sets
-`session.pendingHandoffData`, which TAC turns into the ConversationRelay `end` message.
+`session.pendingHandoffData`, which TAC turns into the ConversationRelay `end` message - triggering
+our configured Studio flow.
 
 ```mermaid
 flowchart LR
@@ -209,111 +317,6 @@ sequenceDiagram
 ```
 
 ---
-
-## Running it locally
-
-Prerequisites: Node 22+, a Twilio account with a number, an Anthropic API key, a Turso
-database, and (for the video "tier") a SendGrid sender to email from.
-
-```bash
-npm install
-cp .env.example .env      # fill in the values (see below)
-npx tsx src/smoke/apply-schema.ts   # create the Turso tables from schema.sql
-npm run dev               # starts the TACServer on :8000
-```
-
-The server needs to be publicly reachable for Twilio to call its webhook. For local dev,
-tunnel it (e.g. `ngrok http 8000`) and set `TWILIO_VOICE_PUBLIC_DOMAIN` to the tunnel host;
-in production it runs on Fly behind the Cloudflare domain (see Deploy).
-
-Point your Twilio number's Voice webhook at `https://<public-domain>/twiml` (POST), then
-call the number.
-
-**Try the logic without a phone** (these run the real agent against scripted turns):
-
-```bash
-npx tsx src/smoke/conversation.ts   # a normal intake (needs ANTHROPIC_API_KEY)
-npx tsx src/smoke/industry.ts       # subject-area capture from plain language
-npx tsx src/smoke/language.ts       # ask-to-switch EN→ES→EN, target-language follows
-npx tsx src/smoke/handoff.ts        # verifies the Flex handoff payload
-LIVE_VIDEO=1 TEST_EMAIL_TO=you@example.com npx tsx src/smoke/deflection.ts  # real video room + email
-```
-
-Unit tests and type-check:
-
-```bash
-npm run typecheck
-npm test
-```
-
-**Before a demo**, clear returning-caller memory so the demo number isn't recognised as a
-repeat caller from earlier test calls:
-
-```bash
-npm run reset-demo             # clears the callers (memory) table only
-npm run reset-demo -- --requests   # also clears the requests table, for a fully blank slate
-```
-
----
-
-## Environment variables
-
-See `.env.example`. Never commit `.env`.
-
-| Variable | Purpose |
-|---|---|
-| `ANTHROPIC_API_KEY` | Claude (the agent). Model: `claude-haiku-4-5`. |
-| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | Twilio auth. |
-| `TWILIO_API_KEY` / `TWILIO_API_SECRET` | Twilio API key pair (TAC). |
-| `TWILIO_PHONE_NUMBER` | The number callers dial. |
-| `TWILIO_VOICE_PUBLIC_DOMAIN` | Public host the server is reachable at (ConversationRelay derives `wss://…` from it). |
-| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Persistence (hosted libSQL / SQLite). |
-| `TWILIO_STUDIO_HANDOFF_FLOW_SID` | Studio Flow for the human → Flex handoff. Must match `FW[0-9a-f]{32}`; leave unset if absent (it's validated and the app refuses a placeholder). |
-| `SENDGRID_API_KEY` / `SENDGRID_FROM_EMAIL` | Emailing the video-session link. Sender must be verified. |
-| `VIDEO_JOIN_BASE_URL` | Base URL for the video join page (a join UI is not built - placeholder is fine). |
-| `CALLER_HASH_SALT` | Salt for hashing caller numbers before storing them as memory keys. |
-
----
-
-## Deploy (Fly.io)
-
-The stock Fastify `TACServer` runs unmodified in a container.
-
-```bash
-fly launch          # first time: creates the app + fly.toml
-fly secrets import < .env       # push env as secrets (never printed)
-fly deploy
-fly scale count 1   # keep exactly ONE machine - see below
-```
-
-Fronted by a Cloudflare-managed domain: a **DNS-only** (grey-cloud) CNAME record points
-`intake.<domain>` at the Fly app, and `fly certs add intake.<domain>` issues TLS.
-
-> **One machine, intentionally.** In-flight call state lives in the process, so the app must
-> run a single always-on machine (`min_machines_running = 1`, `auto_stop_machines = false`
-> in `fly.toml`). Fly's HA default launches two on first deploy - so scaled back to one. The
-> horizontal-scale path is described in the write-up.
-
----
-
-## Project layout
-
-```
-src/
-  index.ts        TACServer wiring: VoiceChannel, onMessageReady → agent, /health, /requests, /deck
-  agent.ts        the Claude tool loop, per-call state, memory seeding, edge cases
-  tools.ts        tool schemas (set_caller_language, record_intake, choose_service_tier, request_handoff, decline_request)
-  intake.ts       IntakeRecord + the deterministic server-side completeness check
-  language.ts     EN/ES/FR voice/locale config + the mid-call ConversationRelay language switch
-  deflection.ts   tiered service: Twilio Video Room + SendGrid email of the join link
-  handoff.ts      the Flex task-attributes payload for the human handoff
-  memory.ts       Turso reads/writes (requests + caller memory)
-  smoke/          runnable scripts that exercise the agent without a phone
-public/deck.html  the demo companion deck (served at /deck) on Fly
-schema.sql        Turso tables
-Dockerfile
-fly.toml
-```
 
 See [WRITEUP.md](WRITEUP.md) for the design rationale, and
 [docs/overflow-network-integration.md](docs/overflow-network-integration.md) for how this front door

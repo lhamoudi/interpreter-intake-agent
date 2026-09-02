@@ -491,12 +491,12 @@
   <div class="eyebrow"><span class="n">02</span> Demo agenda</div>
   <h2>What we'll showcase</h2>
   <ol class="steps">
-    <li><span><strong>Multi-intent intake</strong> - one call, every slot captured in a single breath, no menu.</span></li>
+    <li><span><strong>Multi-intent intake</strong> - expert caller, everything captured in a single utterance, shortcuts the menu entirely.</span></li>
     <li><span><strong>Completeness check</strong> - Claude fills in the details, but server code decides when the intake is actually done.</span></li>
     <li><span><strong>Tiered options + live Flex handoff</strong> - pick a tier, watch the task land in Flex.</span></li>
-    <li><span><strong>Multilingual, mid-call</strong> - switch language by asking, same voice adopts the new language, continues without a reset.</span></li>
-    <li><span><strong>Graceful decline</strong> - a non customer caller gets a clean hangup, with disposition logged.</span></li>
     <li><span><strong>Second call, remembered</strong> - cross-call memory used to greet a returning caller by saved preferences.</span></li>
+    <li><span><strong>Multilingual, mid-call</strong> - switch language by simply asking, same voice adopts the new language, continues without missing a beat.</span></li>
+    <li><span><strong>Graceful decline</strong> - a clear non-customer caller gets a clean hangup, with disposition logged.</span></li>
   </ol>
 </section>
 
@@ -784,28 +784,36 @@
         <text x="872" y="508" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9" fill="var(--red)">media</text>
       </svg>
     </div>
-    <figcaption>Where this take-home fits: the AI intake agent is the front door (band 1). It
-    replaces the fixed DTMF IVR, gathers the request in the caller's own language, and enqueues
-    with the full intake as task attributes. Everything downstream - in-house routing, the crowd
-    overflow, the partner cascade - is the production architecture the intake feeds into.</figcaption>
   </figure>
 </section>
 
-<!-- 10 · Demo + next -->
+<!-- 10 · Codebase -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">10</span> Demo</div>
-  <h2>Try it, then ask me anything</h2>
-  <div class="call-card">
-    <div>
-      <div class="lbl">Live now</div>
-      <div class="num">+1 833 918 3352</div>
+  <div class="eyebrow"><span class="n">10</span> Codebase</div>
+  <h2>The repo, and where to read next</h2>
+  <p class="lead">Everything is in one repository, small enough to read end to end.
+  <span class="mono">github.com/lhamoudi/interpreter-intake-agent</span></p>
+  <div class="cols cols-3">
+    <div class="card">
+      <h3>README.md</h3>
+      <p>What it does, the architecture, how to run it locally, and the environment it needs.</p>
+    </div>
+    <div class="card">
+      <h3>WRITEUP.md</h3>
+      <p>The design rationale: why this use case, the Twilio primitives used, the completeness
+      check, the next-week roadmap, and what I'd change for production.</p>
+    </div>
+    <div class="card">
+      <h3>docs/overflow-network-integration.md</h3>
+      <p>The production overflow architecture from slide 09 - how this front door feeds
+      in-house routing and the partner crowd.</p>
     </div>
   </div>
-  <p style="margin-top:1.6rem">Say a language, a preference, what it's about - in any
-  order. Pick a tier. Watch the task land in Flex. Call twice and it remembers you.</p>
-  <p class="footnote">Repo: <span class="mono">github.com/lhamoudi/interpreter-intake-agent</span>
-  - see <span class="mono">WRITEUP.md</span> for the full rationale, the next-week
-  roadmap, and what I'd change for production.</p>
+  <p class="footnote">Core code lives under <span class="mono">src/</span>:
+  <span class="mono">agent.ts</span> (the Claude tool loop), <span class="mono">intake.ts</span>
+  (the completeness check), <span class="mono">language.ts</span> (the mid-call switch),
+  <span class="mono">handoff.ts</span> and <span class="mono">deflection.ts</span> (the tiers).
+  Happy to open any file.</p>
 </section>
 
 <div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>

@@ -370,6 +370,14 @@
   figcaption { font-size: .85rem; color: var(--muted); line-height: 1.5; max-width: 80ch; }
   figcaption .mono { color: var(--ink); }
 
+  /* mermaid sequence diagrams */
+  .mermaid {
+    margin: 0; text-align: center; overflow-x: auto;
+    font-family: "Karla", system-ui, sans-serif;
+  }
+  .mermaid:not([data-processed]) { color: var(--muted); font-size: .8rem; }
+  .mermaid svg { max-width: 100%; height: auto; }
+
   kbd {
     font-family: "JetBrains Mono", monospace; font-size: .75rem;
     border: 1px solid var(--line); border-bottom-width: 2px;
@@ -862,7 +870,7 @@
   shared record and completeness check.</p>
   <figure class="fig">
     <div class="figwrap">
-      <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. handoff.ts and memory.ts also import the IntakeRecord type from intake.ts. intake.ts has no internal dependencies.">
+      <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. Arrows show runtime calls, not type imports.">
         <defs>
           <marker id="km-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
@@ -918,53 +926,220 @@
         <text x="163" y="126" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">onMessageReady</text>
 
         <!-- index -> language (elbow up-right into language box left edge) -->
-        <polyline points="270,58 300,58 300,139 616,139" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
-        <text x="420" y="132" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">twimlPresetFor()</text>
+        <polyline points="270,58 300,58 300,132 616,132" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
+        <text x="612" y="125" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">twimlPresetFor()</text>
 
         <!-- index -> memory (elbow down-right, own lane at x=330) -->
-        <polyline points="270,74 330,74 330,343 616,343" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
-        <text x="360" y="336" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">lookupCallerByAddress()</text>
+        <polyline points="270,74 330,74 330,336 616,336" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
+        <text x="612" y="329" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">lookupCallerByAddress()</text>
 
         <!-- ============ agent.ts edges (right into each module) ============ -->
+        <!-- Labels sit right above the arrow as it enters its destination box, so
+             each label unambiguously belongs to the connector below it. -->
         <!-- agent -> tools -->
         <polyline points="270,258 480,258 480,67 616,67" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
-        <text x="490" y="60" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">TOOLS</text>
+        <text x="612" y="60" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">TOOLS</text>
         <!-- agent -> language -->
         <polyline points="270,266 460,266 460,152 616,152" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
-        <text x="470" y="171" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">switchLanguage()</text>
+        <text x="612" y="145" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">switchLanguage()</text>
         <!-- agent -> deflection -->
         <polyline points="270,274 440,274 440,211 616,211" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
-        <text x="450" y="204" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">deflectToVideoRoom()</text>
+        <text x="612" y="204" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">deflectToVideoRoom()</text>
         <!-- agent -> handoff -->
         <polyline points="270,282 420,282 420,283 616,283" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
-        <text x="430" y="276" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">buildHandoffData()</text>
+        <text x="612" y="276" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">buildHandoffData()</text>
         <!-- agent -> memory -->
         <polyline points="270,290 400,290 400,355 616,355" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
-        <text x="410" y="372" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">getCallerMemory · saveRequest</text>
+        <text x="612" y="348" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">getCallerMemory · saveRequest</text>
 
         <!-- agent -> intake (down the far-left lane at x=155) -->
         <polyline points="155,314 155,500 616,500" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
         <text x="163" y="420" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">checkComplete()</text>
         <text x="163" y="434" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">mergeIntake()</text>
 
-        <!-- handoff -> intake, memory -> intake (down the shared right lane at x=950) -->
-        <polyline points="890,283 950,283 950,490 954,490" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
-        <polyline points="890,355 930,355 930,490 936,490" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
-        <text x="968" y="450" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">IntakeRecord</text>
-        <text x="968" y="464" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">(type, from handoff + memory)</text>
       </svg>
     </div>
-    <figcaption>Every arrow is an import; the label is what it pulls in.
+    <figcaption>Every arrow is a call at runtime, labelled with the function invoked.
     <span class="mono">index.ts</span> drives one turn through <span class="mono">agent.ts</span>,
-    which calls out to each module. Three files depend on <span class="mono">intake.ts</span>
-    (red) - the shared record and the completeness check that gates every handoff. Not shown to
-    the panel; a map for reading the code.</figcaption>
+    which calls out to each module; <span class="mono">agent.ts</span> calls
+    <span class="mono">checkComplete</span> in <span class="mono">intake.ts</span> (red) to gate
+    every handoff. A map for reading the code, not a slide for the panel.</figcaption>
+  </figure>
+</section>
+
+<!-- 12 · Sequence: happy path -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">12</span> Execution flow</div>
+  <h2>Happy path: intake to a live handoff</h2>
+  <figure class="fig">
+    <div class="figwrap">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant CR as ConversationRelay
+  participant IX as index.ts
+  participant AG as agent.ts
+  participant IN as intake.ts
+  participant HO as handoff.ts
+  participant ST as Studio / Flex
+  CR->>IX: transcribed turn (onMessageReady)
+  IX->>AG: runAgent(text)
+  AG->>AG: Claude tool loop (up to 6 hops)
+  AG->>IN: mergeIntake(patch) on record_intake
+  AG->>IN: checkComplete(record)
+  IN-->>AG: { complete, missing }
+  Note over AG: only proceeds once complete
+  AG->>HO: buildHandoffData() on request_handoff
+  AG->>CR: set session.pendingHandoffData
+  CR->>ST: end message → Studio Flow → Flex task
+</pre>
+    </div>
+    <figcaption>The server-side <span class="mono">checkComplete</span> is the gate: the agent
+    cannot reach <span class="mono">request_handoff</span> until the intake is complete.</figcaption>
+  </figure>
+</section>
+
+<!-- 13 · Sequence: language switch -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">13</span> Execution flow</div>
+  <h2>Mid-call language switch</h2>
+  <figure class="fig">
+    <div class="figwrap">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant CA as Caller
+  participant AG as agent.ts
+  participant LA as language.ts
+  participant CR as ConversationRelay
+  CA->>AG: "can we continue in Spanish?"
+  AG->>AG: Claude calls set_caller_language(Spanish)
+  AG->>LA: switchLanguage(voice, id, "Spanish")
+  LA->>CR: ws.send(type:"language", ttsLanguage, transcriptionLanguage)
+  AG->>AG: set activeLanguage + targetLanguage
+  AG-->>AG: tool_result: reply in Spanish now (same-turn steer)
+  AG->>CA: next hop replies in Spanish, same voice
+  Note over AG,LA: anti-thrash: no message sent if language unchanged
+</pre>
+    </div>
+    <figcaption>The switch takes effect on the very next hop, not the next turn, because the
+    tool result steers the model to change language immediately.</figcaption>
+  </figure>
+</section>
+
+<!-- 14 · Sequence: video deflection -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">14</span> Execution flow</div>
+  <h2>Video-tier deflection, with fallback</h2>
+  <figure class="fig">
+    <div class="figwrap">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant AG as agent.ts
+  participant DF as deflection.ts
+  participant TW as Twilio Video
+  participant SG as SendGrid
+  AG->>AG: Claude calls choose_service_tier(video, email)
+  AG->>AG: checkComplete - must pass first
+  AG->>DF: deflectToVideoRoom(id, email)
+  DF->>TW: create Video room
+  DF->>SG: email the join link
+  alt room + email OK
+    DF-->>AG: ok - link sent
+    AG->>AG: finalizeComplete (persist, no live transfer)
+  else any failure
+    DF-->>AG: not ok
+    AG->>AG: serviceTier = human → request_handoff
+  end
+</pre>
+    </div>
+    <figcaption>The caller never dead-ends: any failure on the video path falls back to a live
+    human transfer.</figcaption>
+  </figure>
+</section>
+
+<!-- 15 · Sequence: returning caller -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">15</span> Execution flow</div>
+  <h2>Returning caller, remembered</h2>
+  <figure class="fig">
+    <div class="figwrap">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant CA as Caller (PSTN)
+  participant IX as index.ts
+  participant ME as memory.ts
+  participant AG as agent.ts
+  CA->>IX: inbound call (onInboundCallTwiml)
+  IX->>ME: lookupCallerByAddress(from) - salted hash
+  ME-->>IX: caller memory (if callCount > 0)
+  IX->>CA: greet in last-used language, preset STT/TTS voice
+  Note over IX,AG: first turn arrives
+  IX->>AG: runAgent(text) → initCall seeds intake from memory
+  AG->>CA: skips questions it already knows the answer to
+</pre>
+    </div>
+    <figcaption>Cross-call memory is keyed by a salted hash of the caller number, so a returning
+    caller is greeted in their language and their known preferences pre-fill the intake.</figcaption>
   </figure>
 </section>
 
 <div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.1/mermaid.min.js"></script>
 <script>
+  // Mermaid sequence diagrams, themed from the deck's own CSS variables so they
+  // track light/dark. Store each diagram's source so we can re-render on a theme
+  // change (mermaid replaces the <pre> content with an SVG on first run).
+  const mermaidBlocks = [...document.querySelectorAll("pre.mermaid")];
+  const mermaidSrc = mermaidBlocks.map((el) => el.textContent);
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function mermaidTheme() {
+    const ink = cssVar("--ink"), muted = cssVar("--muted"), red = cssVar("--red");
+    const paper = cssVar("--paper"), surface = cssVar("--surface"), line = cssVar("--line");
+    return {
+      theme: "base",
+      themeVariables: {
+        fontFamily: '"Karla", system-ui, sans-serif',
+        fontSize: "15px",
+        primaryColor: surface,
+        primaryTextColor: ink,
+        primaryBorderColor: line,
+        lineColor: muted,
+        actorBorder: red,
+        actorBkg: paper,
+        actorTextColor: ink,
+        signalColor: ink,
+        signalTextColor: ink,
+        noteBkgColor: surface,
+        noteTextColor: ink,
+        noteBorderColor: red,
+        activationBorderColor: red,
+        sequenceNumberColor: paper,
+      },
+    };
+  }
+
+  let mermaidReady = false;
+  async function renderMermaid() {
+    if (!window.mermaid) return;
+    // Reset each block to its source (data-processed set after a render).
+    mermaidBlocks.forEach((el, i) => {
+      el.removeAttribute("data-processed");
+      el.textContent = mermaidSrc[i];
+    });
+    window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", ...mermaidTheme() });
+    try { await window.mermaid.run({ nodes: mermaidBlocks }); } catch (e) {}
+    mermaidReady = true;
+  }
+  renderMermaid();
+
   const slides = [...document.querySelectorAll(".slide")];
   addEventListener("keydown", (e) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "PageDown" && e.key !== "PageUp") return;
@@ -1003,15 +1178,24 @@
 
   applyTheme(storedTheme());
 
+  // Re-render mermaid when the OS theme flips and no explicit choice is set.
+  try {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (mermaidReady && !root.getAttribute("data-theme")) renderMermaid();
+    });
+  } catch {}
+
   lightBtn.addEventListener("click", () => {
     const next = root.getAttribute("data-theme") === "light" ? null : "light";
     applyTheme(next);
     storeTheme(next);
+    if (mermaidReady) renderMermaid();
   });
   darkBtn.addEventListener("click", () => {
     const next = root.getAttribute("data-theme") === "dark" ? null : "dark";
     applyTheme(next);
     storeTheme(next);
+    if (mermaidReady) renderMermaid();
   });
 </script>
 </body>

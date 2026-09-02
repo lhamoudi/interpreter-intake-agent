@@ -818,92 +818,9 @@
   </figure>
 </section>
 
-<!-- 10 · Code map -->
+<!-- 10 · Codebase -->
 <section class="slide">
-  <div class="eyebrow"><span class="n">10</span> Code map</div>
-  <h2>How the source files fit together</h2>
-  <p class="lead">The runtime above, as code. <span class="mono">index.ts</span> wires TAC to the
-  agent; <span class="mono">agent.ts</span> is the hub that drives every other module.</p>
-  <figure class="fig">
-    <div class="figwrap">
-      <svg viewBox="0 0 1160 470" role="img" aria-label="Module dependency map for the src directory. index.ts is the entry point and imports agent.ts and memory.ts. agent.ts is the central hub and imports six modules: tools.ts, language.ts, deflection.ts, handoff.ts, intake.ts and memory.ts. handoff.ts and memory.ts both also import intake.ts, which is a leaf module with no internal dependencies. Arrows point from a file to the file it imports.">
-        <defs>
-          <marker id="cm-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
-          </marker>
-          <marker id="cm-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="var(--red)"></path>
-          </marker>
-        </defs>
-
-        <!-- entry: index.ts -->
-        <rect x="60" y="30" width="220" height="60" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="170" y="54" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">index.ts</text>
-        <text x="170" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">entry · wires TAC + routes</text>
-
-        <!-- hub: agent.ts -->
-        <rect x="60" y="200" width="220" height="70" fill="var(--paper)" stroke="var(--red)" stroke-width="2"></rect>
-        <text x="170" y="228" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="14" font-weight="700" fill="var(--red)">agent.ts</text>
-        <text x="170" y="247" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--ink)">the Claude tool loop</text>
-        <text x="170" y="261" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">per-call state · the hub</text>
-
-        <!-- index -> agent, index -> memory -->
-        <line x1="170" y1="90" x2="170" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></line>
-        <text x="182" y="146" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">onMessageReady</text>
-
-        <!-- right column: the six modules agent imports -->
-        <!-- tools -->
-        <rect x="470" y="24" width="250" height="52" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="490" y="46" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="700" fill="var(--ink)">tools.ts</text>
-        <text x="490" y="63" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the tool schemas Claude calls</text>
-        <!-- language -->
-        <rect x="470" y="88" width="250" height="52" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="490" y="110" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="700" fill="var(--ink)">language.ts</text>
-        <text x="490" y="127" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the mid-call language switch</text>
-        <!-- deflection -->
-        <rect x="470" y="152" width="250" height="52" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="490" y="174" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="700" fill="var(--ink)">deflection.ts</text>
-        <text x="490" y="191" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">video room + emailed link</text>
-        <!-- handoff -->
-        <rect x="470" y="216" width="250" height="52" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="490" y="238" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="700" fill="var(--ink)">handoff.ts</text>
-        <text x="490" y="255" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the Flex handoff payload</text>
-        <!-- memory -->
-        <rect x="470" y="280" width="250" height="52" fill="var(--paper)" stroke="currentColor" stroke-width="1.2"></rect>
-        <text x="490" y="302" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="700" fill="var(--ink)">memory.ts</text>
-        <text x="490" y="319" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">Turso: requests + caller memory</text>
-
-        <!-- agent -> each of the six (fan out from agent right edge) -->
-        <path d="M280 220 C 380 220, 380 50, 466 50" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></path>
-        <path d="M280 224 C 380 224, 380 114, 466 114" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></path>
-        <path d="M280 230 C 380 230, 380 178, 466 178" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></path>
-        <path d="M280 240 C 380 240, 380 242, 466 242" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></path>
-        <path d="M280 250 C 380 250, 380 306, 466 306" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#cm-a)"></path>
-        <text x="330" y="150" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">imports</text>
-
-        <!-- intake.ts leaf, shared -->
-        <rect x="820" y="360" width="260" height="60" fill="var(--paper)" stroke="var(--red)" stroke-width="2"></rect>
-        <text x="950" y="384" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--red)">intake.ts</text>
-        <text x="950" y="402" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--ink)">IntakeRecord + the completeness check</text>
-
-        <!-- agent, handoff, memory all -> intake -->
-        <path d="M170 270 C 170 420, 500 440, 816 400" fill="none" stroke="var(--red)" stroke-width="1.6" marker-end="url(#cm-ar)"></path>
-        <path d="M595 268 C 595 340, 720 380, 816 384" fill="none" stroke="var(--red)" stroke-width="1.6" marker-end="url(#cm-ar)"></path>
-        <path d="M690 306 C 760 320, 780 356, 816 368" fill="none" stroke="var(--red)" stroke-width="1.6" marker-end="url(#cm-ar)"></path>
-        <text x="700" y="440" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9" fill="var(--red)">the shared record + gate: agent, handoff, memory all import it</text>
-      </svg>
-    </div>
-    <figcaption>Arrows point from a file to the file it imports. <span class="mono">agent.ts</span>
-    is the hub; <span class="mono">intake.ts</span> is the shared record and completeness check
-    three modules depend on. The other leaves (<span class="mono">tools</span>,
-    <span class="mono">language</span>, <span class="mono">deflection</span>) have no internal
-    dependencies. Every file is linked on the next slide.</figcaption>
-  </figure>
-</section>
-
-<!-- 11 · Codebase -->
-<section class="slide">
-  <div class="eyebrow"><span class="n">11</span> Codebase</div>
+  <div class="eyebrow"><span class="n">10</span> Codebase</div>
   <h2>The repo where all this lives</h2>
   <a class="repo-link" href="https://github.com/lhamoudi/interpreter-intake-agent" target="_blank" rel="noopener">
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
@@ -934,6 +851,115 @@
     <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/handoff.ts" target="_blank" rel="noopener">handoff.ts</a> <span>the Flex handoff payload</span></li>
     <li><a href="https://github.com/lhamoudi/interpreter-intake-agent/blob/main/src/deflection.ts" target="_blank" rel="noopener">deflection.ts</a> <span>the service tiers</span></li>
   </ul>
+</section>
+
+<!-- 11 · Code map -->
+<section class="slide">
+  <div class="eyebrow"><span class="n">11</span> Code map</div>
+  <h2>How the source files call each other</h2>
+  <p class="lead">Each arrow is an import, labelled with what it actually pulls in.
+  <span class="mono">agent.ts</span> is the hub; <span class="mono">intake.ts</span> (red) is the
+  shared record and completeness check.</p>
+  <figure class="fig">
+    <div class="figwrap">
+      <svg viewBox="0 0 1180 560" role="img" aria-label="Module call map for the src directory. index.ts (the entry point) calls runAgent, initCall and endCall in agent.ts, twimlPresetFor in language.ts, and lookupCallerByAddress in memory.ts. agent.ts, the hub, calls TOOLS in tools.ts, switchLanguage in language.ts, deflectToVideoRoom in deflection.ts, buildHandoffData in handoff.ts, getCallerMemory and saveRequest in memory.ts, and checkComplete and mergeIntake in intake.ts. handoff.ts and memory.ts also import the IntakeRecord type from intake.ts. intake.ts has no internal dependencies.">
+        <defs>
+          <marker id="km-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+          </marker>
+          <marker id="km-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--red)"></path>
+          </marker>
+        </defs>
+
+        <!-- ============ nodes ============ -->
+        <!-- index.ts (entry, top-left) -->
+        <rect x="40" y="36" width="230" height="62" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="155" y="62" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="14" font-weight="700" fill="var(--ink)">index.ts</text>
+        <text x="155" y="80" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">entry · wires TAC + routes</text>
+
+        <!-- agent.ts (hub, middle-left) -->
+        <rect x="40" y="242" width="230" height="72" fill="var(--paper)" stroke="var(--red)" stroke-width="2.4"></rect>
+        <text x="155" y="270" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="15" font-weight="700" fill="var(--red)">agent.ts</text>
+        <text x="155" y="289" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--ink)">the Claude tool loop</text>
+        <text x="155" y="303" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">per-call state · the hub</text>
+
+        <!-- module column (right) -->
+        <rect x="620" y="40" width="270" height="54" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="640" y="63" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">tools.ts</text>
+        <text x="640" y="81" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the tool schemas Claude calls</text>
+
+        <rect x="620" y="112" width="270" height="54" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="640" y="135" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">language.ts</text>
+        <text x="640" y="153" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the mid-call language switch</text>
+
+        <rect x="620" y="184" width="270" height="54" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="640" y="207" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">deflection.ts</text>
+        <text x="640" y="225" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">video room + emailed link</text>
+
+        <rect x="620" y="256" width="270" height="54" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="640" y="279" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">handoff.ts</text>
+        <text x="640" y="297" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">the Flex handoff payload</text>
+
+        <rect x="620" y="328" width="270" height="54" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="640" y="351" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="var(--ink)">memory.ts</text>
+        <text x="640" y="369" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--muted)">Turso: requests + caller memory</text>
+
+        <!-- intake.ts (shared leaf, bottom) -->
+        <rect x="620" y="470" width="330" height="60" fill="var(--paper)" stroke="var(--red)" stroke-width="2.4"></rect>
+        <text x="785" y="496" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="14" font-weight="700" fill="var(--red)">intake.ts</text>
+        <text x="785" y="514" text-anchor="middle" font-family="Archivo,sans-serif" font-size="9.5" fill="var(--ink)">IntakeRecord + the completeness check · no internal deps</text>
+
+        <!-- ============ index.ts edges (down + right) ============ -->
+        <!-- index -> agent -->
+        <line x1="155" y1="98" x2="155" y2="238" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></line>
+        <text x="163" y="150" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">runAgent()</text>
+        <text x="163" y="164" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">initCall · endCall</text>
+        <text x="163" y="126" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">onMessageReady</text>
+
+        <!-- index -> language (elbow up-right into language box left edge) -->
+        <polyline points="270,58 300,58 300,139 616,139" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
+        <text x="420" y="132" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">twimlPresetFor()</text>
+
+        <!-- index -> memory (elbow down-right, own lane at x=330) -->
+        <polyline points="270,74 330,74 330,343 616,343" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#km-a)"></polyline>
+        <text x="360" y="336" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--muted)">lookupCallerByAddress()</text>
+
+        <!-- ============ agent.ts edges (right into each module) ============ -->
+        <!-- agent -> tools -->
+        <polyline points="270,258 480,258 480,67 616,67" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="490" y="60" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">TOOLS</text>
+        <!-- agent -> language -->
+        <polyline points="270,266 460,266 460,152 616,152" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="470" y="171" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">switchLanguage()</text>
+        <!-- agent -> deflection -->
+        <polyline points="270,274 440,274 440,211 616,211" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="450" y="204" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">deflectToVideoRoom()</text>
+        <!-- agent -> handoff -->
+        <polyline points="270,282 420,282 420,283 616,283" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="430" y="276" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">buildHandoffData()</text>
+        <!-- agent -> memory -->
+        <polyline points="270,290 400,290 400,355 616,355" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#km-a)"></polyline>
+        <text x="410" y="372" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-2)">getCallerMemory · saveRequest</text>
+
+        <!-- agent -> intake (down the far-left lane at x=155) -->
+        <polyline points="155,314 155,500 616,500" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
+        <text x="163" y="420" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">checkComplete()</text>
+        <text x="163" y="434" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">mergeIntake()</text>
+
+        <!-- handoff -> intake, memory -> intake (down the shared right lane at x=950) -->
+        <polyline points="890,283 950,283 950,490 954,490" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
+        <polyline points="890,355 930,355 930,490 936,490" fill="none" stroke="var(--red)" stroke-width="2" marker-end="url(#km-ar)"></polyline>
+        <text x="968" y="450" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--red)">IntakeRecord</text>
+        <text x="968" y="464" font-family="Archivo,sans-serif" font-size="9" fill="var(--muted)">(type, from handoff + memory)</text>
+      </svg>
+    </div>
+    <figcaption>Every arrow is an import; the label is what it pulls in.
+    <span class="mono">index.ts</span> drives one turn through <span class="mono">agent.ts</span>,
+    which calls out to each module. Three files depend on <span class="mono">intake.ts</span>
+    (red) - the shared record and the completeness check that gates every handoff. Not shown to
+    the panel; a map for reading the code.</figcaption>
+  </figure>
 </section>
 
 <div class="navhint">Navigate with <kbd>↑</kbd> <kbd>↓</kbd></div>

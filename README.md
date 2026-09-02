@@ -222,6 +222,31 @@ flowchart LR
   AG -->|"sets session.pendingHandoffData"| TAC
 ```
 
+### Startup: main() runs once, then it's all callbacks
+
+`main()` in `src/index.ts` runs exactly once, at boot - it is not invoked per call. It registers
+three callbacks and starts the server, then returns; everything else in this section is one of
+those callbacks firing when a real call reaches it.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Fly as Fly machine boot
+  participant IX as index.ts main()
+  participant TAC as TAC / TACServer
+  participant VC as VoiceChannel
+  Fly->>IX: run main()
+  IX->>TAC: TAC.create(config)
+  IX->>VC: new VoiceChannel(defaultTwimlOptions)
+  IX->>VC: onInboundCallTwiml(callback)
+  IX->>TAC: onMessageReady(callback)
+  IX->>TAC: onConversationEnded(callback)
+  IX->>TAC: registerChannel(voiceChannel)
+  IX->>TAC: new TACServer(tac), server.start()
+  Note over IX: main() returns, callbacks are registered
+  Note over TAC: idle, listening on /twiml and /ws
+```
+
 ### Happy path: intake to a live handoff
 
 The server-side `checkComplete` is the gate - the agent cannot reach `request_handoff` until

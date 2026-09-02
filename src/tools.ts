@@ -30,8 +30,9 @@ export const RECORD_INTAKE: Anthropic.Tool = {
         type: 'string',
         description:
           'The language the third party is interpreted INTO - i.e. the caller\'s own language. ' +
-          'This defaults to the language the caller is speaking to you (see set_caller_language); ' +
-          'confirm it with them rather than asking from scratch.',
+          'This is the language the caller is currently speaking to you and is pre-filled ' +
+          '(English by default, updated by set_caller_language on a switch). Do NOT ask the ' +
+          'caller about it or set it from a question; it is already known from the conversation.',
       },
       genderPreference: {
         type: 'string',

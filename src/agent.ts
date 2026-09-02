@@ -66,9 +66,14 @@ function baseSystemPrompt(): string {
     'French, or clearly tells you which language they want to use, call set_caller_language with it',
     'and speak that language for the rest of the call. Do NOT try to guess their language from a',
     'garbled first utterance - wait until they make it clear (by asking, or by switching once you',
-    'are already conversing). When you do switch, that language is the caller\'s own language, which',
-    'is also what their third party should be interpreted INTO (targetLanguage) - default',
-    'targetLanguage to it and simply confirm, do not ask it cold.',
+    'are already conversing).',
+    '',
+    'The language the CALLER is speaking to you right now is ALSO the language their third party',
+    'gets interpreted INTO (targetLanguage). This is already known - it is the current conversation',
+    'language - so NEVER ask the caller what language they speak or what to interpret into. If the',
+    'caller is speaking English, targetLanguage is English. It is pre-filled for you; only a',
+    'mid-call switch (set_caller_language) changes it. You MAY include it in your confirmation of',
+    'the collected details (e.g. "Mandarin into English"), but never ask a separate question about it.',
     '',
     'Collect, working the questions naturally into the conversation (never a rigid checklist):',
     '  - which language the caller needs an interpreter FOR - this is the language of the OTHER',
@@ -185,15 +190,19 @@ export async function initCall(conversationId: string, callerAddress: string | u
     'call started',
   );
   // Seed known preferences from memory so a returning caller can skip questions.
+  // targetLanguage is the caller's OWN language (what the third party is interpreted
+  // INTO). The call opens in English, so a new caller's target defaults to English
+  // right away - no need to ask. A mid-call set_caller_language overrides it; a
+  // returning caller uses their remembered value.
   const seed: IntakeRecord = memory
     ? {
         sourceLanguage: memory.sourceLanguage,
-        targetLanguage: memory.targetLanguage,
+        targetLanguage: memory.targetLanguage ?? 'English',
         genderPreference: memory.genderPreference as IntakeRecord['genderPreference'],
         industry: memory.industry as IntakeRecord['industry'],
         email: memory.email,
       }
-    : {};
+    : { targetLanguage: 'English' };
 
   // A returning caller whose spoken language we know starts the call already in
   // that language (the TwiML customizer also preset the STT/TTS voice). A new
